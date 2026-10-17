@@ -32,7 +32,6 @@ function asQuestions(pending: Record<string, unknown> | undefined): Clarificatio
 }
 
 const num = (v: unknown): number => (typeof v === 'number' ? v : 0)
-const count = (n: number, noun: string): string => `${n} ${noun}${n === 1 ? '' : 's'}`
 
 /** The three places the investigation stops and waits for a person. */
 export function CheckpointPanel({ inv, onDone }: { inv: Investigation; onDone: () => void }) {
@@ -48,14 +47,26 @@ export function CheckpointPanel({ inv, onDone }: { inv: Investigation; onDone: (
     else toast.error('Could not continue', 'The investigation is still waiting for you. Try again.')
   }
 
+  const [open, setOpen] = useState(true)
   if (!inv.awaiting) return null
+  const bodyId = `checkpoint-${inv.id}`
   return (
     <section aria-label="Your input is needed" className="border border-warning bg-surface">
-      <div className="flex flex-wrap items-center gap-2 border-b border-line-subtle px-5 py-3">
-        <Icon name="alert" className="text-warning" />
-        <h2 className="text-heading text-ink">{awaitingLabel[inv.awaiting]}</h2>
-      </div>
-      <div className="px-5 py-4">
+      <h2 className={open ? 'border-b border-line-subtle' : undefined}>
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls={bodyId}
+          onClick={() => setOpen((o) => !o)}
+          className="flex w-full items-center gap-2 px-5 py-3 text-left hover:bg-surface-muted"
+        >
+          <Icon name="alert" className="text-warning" />
+          <span className="flex-1 text-heading text-ink">{awaitingLabel[inv.awaiting]}</span>
+          <span className="text-caption text-ink-muted">{open ? 'Collapse' : 'Expand'}</span>
+          <Icon name={open ? 'chevronUp' : 'chevronDown'} className="text-ink-muted" />
+        </button>
+      </h2>
+      <div id={bodyId} hidden={!open} className="px-5 py-4">
         {inv.awaiting === 'clarification' ? <Clarification inv={inv} busy={busy} onSubmit={submit} /> : null}
         {inv.awaiting === 'review' ? <Review inv={inv} busy={busy} onSubmit={submit} /> : null}
         {inv.awaiting === 'draft_approval' ? <DraftApproval inv={inv} busy={busy} onSubmit={submit} /> : null}
@@ -184,17 +195,27 @@ function Review({ inv, busy, onSubmit }: PanelProps) {
         void onSubmit({ decision, note: note.trim() }, 'Review submitted')
       }}
     >
-      <p className="max-w-prose text-body text-ink">
-        Check the findings against their evidence before deciding.{' '}
-        <span className="text-ink-muted">
-          {count(num(p.findings), 'finding')} · {count(num(p.conflicts), 'contradiction')} · {count(num(p.gaps), 'gap')} · {count(num(p.actions), 'suggested action')}.
-        </span>
-      </p>
+      <div className="flex flex-col gap-2">
+        <p className="text-body text-ink">Check the findings against their evidence before deciding.</p>
+        <dl className="flex flex-wrap gap-x-6 gap-y-1">
+          {[
+            ['Findings', num(p.findings)],
+            ['Contradictions', num(p.conflicts)],
+            ['Gaps', num(p.gaps)],
+            ['Suggested actions', num(p.actions)],
+          ].map(([label, n]) => (
+            <div key={label} className="flex items-baseline gap-1.5">
+              <dd className="order-first text-body font-medium tabular-nums text-ink">{n}</dd>
+              <dt className="text-caption text-ink-muted">{label}</dt>
+            </div>
+          ))}
+        </dl>
+      </div>
       {flagged ? <p className="text-caption text-warning">Some quality checks are still flagged. See the summary tab before approving.</p> : null}
-      <fieldset className="flex flex-col gap-2">
+      <fieldset className="flex flex-col gap-1.5">
         <legend className="mb-1 text-caption font-medium text-ink">Your decision</legend>
         {DECISIONS.map((d) => (
-          <label key={d.id} className="flex cursor-pointer items-start gap-3 border border-line-subtle px-3 py-2 hover:bg-surface-muted has-[:checked]:border-primary">
+          <label key={d.id} className="flex cursor-pointer items-start gap-3 border border-line-subtle px-3 py-2 hover:bg-surface-muted has-[:checked]:border-primary/60 has-[:checked]:bg-primary/5">
             <input type="radio" name="decision" className="mt-1 size-4 accent-primary" checked={decision === d.id} onChange={() => setDecision(d.id)} />
             <span>
               <span className="block text-body text-ink">{d.label}</span>
@@ -204,7 +225,7 @@ function Review({ inv, busy, onSubmit }: PanelProps) {
         ))}
       </fieldset>
       <Field label={chosen.noteRequired ? 'Note' : 'Note (optional)'} required={chosen.noteRequired}>
-        <Textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} />
+        <Textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
       </Field>
       <div>
         <Button type="submit" disabled={busy || (chosen.noteRequired && !note.trim())}>
@@ -224,9 +245,7 @@ function DraftApproval({ inv, busy, onSubmit }: PanelProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="max-w-prose text-body text-ink">
-        Read and edit the customer update. Approving records your sign-off and closes the investigation. <strong className="font-medium">Nothing is sent</strong>; you copy the text into your own channel.
-      </p>
+      <p className="text-body text-ink">Read and edit the customer update. Approving records your sign-off and closes the investigation.</p>
       {warnings.length > 0 ? (
         <div role="status" className="border border-warning/50 bg-warning/10 p-3">
           <p className="text-caption font-medium text-ink">The checks flagged this draft</p>

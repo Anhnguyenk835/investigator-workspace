@@ -93,6 +93,8 @@ class AppState:
 
 class CreateInvestigation(BaseModel):
     question: str = Field(min_length=1, max_length=4000)
+    # Short title shown in lists. Optional: older clients omit it.
+    name: str | None = Field(default=None, max_length=120)
     # Optional case scope set by the person starting the investigation.
     customer_id: str | None = None
     project_id: str | None = None
@@ -271,9 +273,12 @@ def create_app(state: AppState | None = None) -> FastAPI:
                 f"Unknown source: {', '.join(unknown)}. "
                 f"Available: {', '.join(sorted(app_state.access.permitted_sources)) or 'none'}.",
             )
-        context = CaseContext(**body.model_dump(exclude={"question"}))
+        context = CaseContext(**body.model_dump(exclude={"question", "name"}))
         record = await app_state.store.create(
-            body.question.strip(), context, owner_for_new(who)
+            body.question.strip(),
+            context,
+            owner_for_new(who),
+            name=(body.name or "").strip() or None,
         )
         await dispatch(
             app_state,

@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS investigations (
 ALTER TABLE investigations ADD COLUMN IF NOT EXISTS awaiting text;
 ALTER TABLE investigations ADD COLUMN IF NOT EXISTS pending jsonb;
 ALTER TABLE investigations ADD COLUMN IF NOT EXISTS owner text;
+ALTER TABLE investigations ADD COLUMN IF NOT EXISTS name text;
 ALTER TABLE investigations ADD COLUMN IF NOT EXISTS owner_id text;
 CREATE INDEX IF NOT EXISTS investigations_owner_idx ON investigations (owner_id, created_at DESC);
 ALTER TABLE investigations ADD COLUMN IF NOT EXISTS run_no int NOT NULL DEFAULT 1;
@@ -42,7 +43,11 @@ CREATE INDEX IF NOT EXISTS investigations_created_idx ON investigations (created
 
 class InvestigationStore(Protocol):
     async def create(
-        self, question: str, context: CaseContext, owner_id: str | None = None
+        self,
+        question: str,
+        context: CaseContext,
+        owner_id: str | None = None,
+        name: str | None = None,
     ) -> Investigation: ...
     async def get(self, investigation_id: UUID) -> Investigation | None: ...
     async def list(
@@ -86,6 +91,7 @@ def _to_model(row: dict[str, Any]) -> Investigation:
     return Investigation(
         id=row["id"],
         question=row["question"],
+        name=row.get("name"),
         status=row["status"],
         owner=row["owner"],
         owner_id=row.get("owner_id"),
@@ -119,16 +125,21 @@ class PostgresInvestigationStore:
             return row
 
     async def create(
-        self, question: str, context: CaseContext, owner_id: str | None = None
+        self,
+        question: str,
+        context: CaseContext,
+        owner_id: str | None = None,
+        name: str | None = None,
     ) -> Investigation:
         row = await self._one(
-            "INSERT INTO investigations (id, question, status, result, owner_id) "
-            "VALUES (%s, %s, 'queued', %s, %s) RETURNING *",
+            "INSERT INTO investigations (id, question, status, result, owner_id, name) "
+            "VALUES (%s, %s, 'queued', %s, %s, %s) RETURNING *",
             (
                 uuid4(),
                 question,
                 Jsonb({"context": context.model_dump(mode="json")}),
                 owner_id,
+                name,
             ),
         )
         assert row is not None

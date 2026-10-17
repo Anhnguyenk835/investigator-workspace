@@ -30,6 +30,7 @@ export function NewInvestigationPage() {
   const navigate = useNavigate()
   const toast = useToast()
 
+  const [name, setName] = useState('')
   const [problem, setProblem] = useState('')
   const [customer, setCustomer] = useState('')
   const [project, setProject] = useState('')
@@ -63,6 +64,8 @@ export function NewInvestigationPage() {
 
   const validate = (): boolean => {
     const e: Record<string, string> = {}
+    if (!name.trim()) e.name = 'Give the investigation a short name so you can find it later.'
+    else if (name.trim().length > 120) e.name = 'Keep the name under 120 characters.'
     if (!problem.trim()) e.problem = 'Describe what happened so the investigation knows what to look for.'
     if (ticket.trim() && !TICKET_PATTERN.test(ticket.trim())) e.ticket = 'Ticket IDs look like IMPL-482. Fix it or leave this field empty.'
     if (from && to && from > to) e.range = 'The start date must be on or before the end date.'
@@ -79,6 +82,7 @@ export function NewInvestigationPage() {
     setBusy(true)
     try {
       const inv = await api.createInvestigation({
+        name: name.trim(),
         question: questionWithHints(problem, useDirectory ? '' : customer, useDirectory ? '' : project, people),
         customer_id: useDirectory && customerId ? customerId : undefined,
         project_id: useDirectory && projectId ? projectId : undefined,
@@ -97,14 +101,14 @@ export function NewInvestigationPage() {
   }
 
   return (
-    <>
+    <div className="mx-auto w-full max-w-4xl">
       <PageHeader
         crumbs={[{ label: 'Investigations', to: '/investigations' }, { label: 'New investigation' }]}
         title="New investigation"
-        description="Describe the escalation. Optional context narrows the search; nothing else is required."
+        description="Describe the reported escalation"
       />
 
-      <form onSubmit={onSubmit} noValidate className="grid max-w-4xl gap-6">
+      <form onSubmit={onSubmit} noValidate className="grid gap-6">
         {formError ? <ErrorState title="Could not start the investigation" message={formError} /> : null}
 
         <Card>
@@ -112,7 +116,10 @@ export function NewInvestigationPage() {
             <h2 className="text-body font-medium">The escalation</h2>
           </CardHeader>
           <CardBody className="flex flex-col gap-5">
-            <Field label="What happened?" required error={errors.problem} hint="Include what the customer expected and what needs to be clarified.">
+            <Field label="Name" required error={errors.name}>
+              <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={120} />
+            </Field>
+            <Field label="Escalation / issue" required error={errors.problem}>
               <Textarea
                 rows={5}
                 value={problem}
@@ -123,7 +130,7 @@ export function NewInvestigationPage() {
             <div className="grid gap-5 sm:grid-cols-2">
               {useDirectory ? (
                 <>
-                  <Field label="Customer" hint="Optional. The search stays inside this customer's projects and domains.">
+                  <Field label="Customer">
                     <Select
                       value={customerId}
                       onChange={(e) => {
@@ -139,7 +146,7 @@ export function NewInvestigationPage() {
                       ))}
                     </Select>
                   </Field>
-                  <Field label="Project" hint="Optional. Limits Slack, Jira, Gmail and Confluence to what is mapped to it.">
+                  <Field label="Project">
                     <Select value={projectId} onChange={(e) => setProjectId(e.target.value)}>
                       <option value="">Any project</option>
                       {projectsOfCustomer.map((p) => (
@@ -152,10 +159,10 @@ export function NewInvestigationPage() {
                 </>
               ) : (
                 <>
-                  <Field label="Customer / account" hint="Used as a search hint. Set up the Directory to limit the search to one customer.">
+                  <Field label="Customer / account">
                     <Input value={customer} onChange={(e) => setCustomer(e.target.value)} />
                   </Field>
-                  <Field label="Project or implementation" hint="Used as a search hint.">
+                  <Field label="Project">
                     <Input value={project} onChange={(e) => setProject(e.target.value)} />
                   </Field>
                 </>
@@ -163,7 +170,7 @@ export function NewInvestigationPage() {
               <Field label="Existing ticket ID" error={errors.ticket}>
                 <Input value={ticket} onChange={(e) => setTicket(e.target.value)} />
               </Field>
-              <Field label="People involved" hint="Names or email addresses, separated by commas. Used as a search hint.">
+              <Field label="People involved">
                 <Input value={people} onChange={(e) => setPeople(e.target.value)} />
               </Field>
               <Field label="From" error={errors.range}>
@@ -231,6 +238,6 @@ export function NewInvestigationPage() {
           </Button>
         </div>
       </form>
-    </>
+    </div>
   )
 }

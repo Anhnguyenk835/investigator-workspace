@@ -249,8 +249,8 @@ export function AppShell() {
           <span className="truncate text-caption text-ink-muted">The Investigator</span>
         </header>
         <DemoStrip />
-        <main id="main" className="min-w-0 flex-1 px-4 py-6 sm:px-8 sm:py-8">
-          <div className="mx-auto w-full max-w-[1280px]">
+        <main id="main" className="min-w-0 flex-1 px-3 py-6 sm:px-5 sm:py-6">
+          <div className="mx-auto w-full max-w-[1680px]">
             <Outlet />
           </div>
         </main>

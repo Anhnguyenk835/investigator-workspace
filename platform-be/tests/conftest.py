@@ -19,12 +19,17 @@ class MemoryStore:
         )
 
     async def create(
-        self, question: str, context: CaseContext, owner_id: str | None = None
+        self,
+        question: str,
+        context: CaseContext,
+        owner_id: str | None = None,
+        name: str | None = None,
     ) -> Investigation:
         now = datetime.now(UTC)
         inv = Investigation(
             id=uuid4(),
             question=question,
+            name=name,
             status="queued",
             context=context,
             owner_id=owner_id,
