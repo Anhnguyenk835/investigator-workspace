@@ -1,0 +1,238 @@
+@import 'tailwindcss';
+
+@theme {
+  /* Radius — hard corners only */
+  --radius: 0px;
+  --radius-none: 0px;
+  --radius-xs: 0px;
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --radius-2xl: 0px;
+  --radius-3xl: 0px;
+  --radius-4xl: 0px;
+  --radius-full: 9999px; /* only for circular controls such as the send button */
+
+  /* Color — blue theme, primary #48AFF0 */
+  --color-canvas: #f6f8fb;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f0f4f8;
+  --color-ink: #22364a;
+  --color-ink-muted: #627689;
+  --color-line: #d9e2ec;
+  --color-line-subtle: #e7edf3;
+  --color-primary: #48aff0;
+  --color-primary-fg: #062033;
+  --color-accent: #48aff0;
+  --color-accent-fg: #062033;
+  --color-danger: #c4463d;
+  --color-danger-fg: #ffffff;
+  --color-warning: #b9722a;
+  --color-warning-fg: #ffffff;
+  --color-success: #2e7d54;
+  --color-success-fg: #ffffff;
+  --color-info: #2f82b8;
+  --color-info-fg: #ffffff;
+
+  /* Type */
+  --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, menlo, monospace;
+
+  --text-display: 2.5rem;
+  --text-display--line-height: 1.1;
+  --text-display--letter-spacing: -0.03em;
+  --text-display--font-weight: 500;
+
+  --text-title: 1.75rem;
+  --text-title--line-height: 1.2;
+  --text-title--letter-spacing: -0.025em;
+  --text-title--font-weight: 500;
+
+  --text-heading: 1.25rem;
+  --text-heading--line-height: 1.3;
+  --text-heading--letter-spacing: -0.02em;
+  --text-heading--font-weight: 500;
+
+  --text-body: 0.9375rem;
+  --text-body--line-height: 1.55;
+  --text-body--letter-spacing: 0em;
+  --text-body--font-weight: 400;
+
+  --text-caption: 0.8125rem;
+  --text-caption--line-height: 1.4;
+  --text-caption--letter-spacing: 0.01em;
+  --text-caption--font-weight: 400;
+
+  --text-overline: 0.6875rem;
+  --text-overline--line-height: 1.3;
+  --text-overline--letter-spacing: 0.08em;
+  --text-overline--font-weight: 500;
+
+  /* Size — control heights */
+  --shadow-sm: 0 1px 2px rgb(34 54 74 / 0.05);
+  --shadow-lg: 0 8px 28px rgb(34 54 74 / 0.12);
+  --spacing: 0.25rem;
+  --height-control-sm: 2rem;
+  --height-control-md: 2.5rem;
+  --height-control-lg: 3rem;
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: var(--text-body);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  * {
+    border-radius: 0;
+  }
+
+  ::selection {
+    background: var(--color-primary);
+    color: var(--color-primary-fg);
+  }
+
+  /* Keyboard focus stays visible but quiet; form fields only change border tone. */
+  :focus-visible {
+    outline: 1px solid color-mix(in srgb, var(--color-primary) 55%, transparent);
+    outline-offset: 2px;
+  }
+
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: none;
+  }
+}
+
+/* Brief outline when the agent points at a record in the workspace. */
+[data-flash] {
+  outline: 2px solid color-mix(in srgb, var(--color-primary) 70%, transparent);
+  outline-offset: 3px;
+}
+
+/* Thin blue scrollbars across the app. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--color-primary) 60%, transparent) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--color-primary) 55%, transparent);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary);
+}
+
+/* Agent orb: a soft, slowly shifting blue sphere (Siri-like). Colors come from theme tokens. */
+.agent-orb {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: 9999px;
+  isolation: isolate;
+  background: color-mix(in srgb, var(--color-primary) 85%, white);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, white 55%, transparent),
+    0 4px 14px color-mix(in srgb, var(--color-primary) 40%, transparent);
+}
+
+.agent-orb::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 30% 24%, color-mix(in srgb, white 80%, transparent), transparent 46%);
+  mix-blend-mode: soft-light;
+}
+
+.agent-orb > i {
+  position: absolute;
+  width: 78%;
+  height: 78%;
+  border-radius: 9999px;
+  filter: blur(var(--orb-blur, 5px));
+  opacity: 0.9;
+}
+
+.agent-orb > i:nth-child(1) {
+  top: -14%;
+  left: -10%;
+  background: color-mix(in srgb, var(--color-info) 75%, var(--color-primary-fg));
+}
+
+.agent-orb > i:nth-child(2) {
+  right: -16%;
+  bottom: -12%;
+  background: color-mix(in srgb, var(--color-primary) 55%, white);
+}
+
+.agent-orb > i:nth-child(3) {
+  top: 18%;
+  left: 24%;
+  width: 56%;
+  height: 56%;
+  background: color-mix(in srgb, white 70%, var(--color-primary));
+}
+
+.agent-orb[data-animated] > i:nth-child(1) {
+  animation: orb-drift-a 5.5s ease-in-out infinite;
+}
+.agent-orb[data-animated] > i:nth-child(2) {
+  animation: orb-drift-b 6.5s ease-in-out infinite;
+}
+.agent-orb[data-animated] > i:nth-child(3) {
+  animation: orb-drift-c 4.5s ease-in-out infinite;
+}
+.agent-orb[data-animated][data-busy] > i {
+  animation-duration: 1.8s;
+}
+
+@keyframes orb-drift-a {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(45%, 20%) scale(1.15); }
+  66% { transform: translate(15%, 55%) scale(0.9); }
+}
+@keyframes orb-drift-b {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  40% { transform: translate(-50%, -25%) scale(1.2); }
+  75% { transform: translate(-20%, -55%) scale(0.95); }
+}
+@keyframes orb-drift-c {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-30%, 35%) scale(1.25); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .agent-orb[data-animated] > i {
+    animation: none;
+  }
+}
