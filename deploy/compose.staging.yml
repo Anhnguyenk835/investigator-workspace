@@ -1,0 +1,42 @@
+# Staging on one host. Pull and start with:  docker compose -f compose.staging.yml --env-file .env.staging up -d --wait
+# The real .env.staging lives on the host and is never committed (see staging.env.example).
+name: investigator-staging
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: investigator
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: investigator
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U investigator"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    image: ghcr.io/anhnguyenk835/investigator-api:${TAG:-staging}
+    restart: unless-stopped
+    env_file: .env.staging
+    environment:
+      DATABASE_URL: postgresql://investigator:${POSTGRES_PASSWORD}@db:5432/investigator
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    image: ghcr.io/anhnguyenk835/investigator-web:${TAG:-staging}
+    restart: unless-stopped
+    ports:
+      # Put TLS in front (a reverse proxy or a tunnel); only the web container is published.
+      - "${WEB_PORT:-8080}:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  postgres-data:
