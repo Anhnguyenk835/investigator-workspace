@@ -1,0 +1,183 @@
+[
+ {
+  "text": "Write to maria.chen@acme-fund.com about the form.",
+  "gold": [
+   [
+    "EMAIL",
+    "maria.chen@acme-fund.com"
+   ]
+  ],
+  "names": []
+ },
+ {
+  "text": "cc: sam@us.test, Priya.Rao+ops@Acme-Fund.co.uk",
+  "gold": [
+   [
+    "EMAIL",
+    "sam@us.test"
+   ],
+   [
+    "EMAIL",
+    "Priya.Rao+ops@Acme-Fund.co.uk"
+   ]
+  ],
+  "names": []
+ },
+ {
+  "text": "Call +84 90 123 4567 or (415) 555-0100.",
+  "gold": [
+   [
+    "PHONE",
+    "+84 90 123 4567"
+   ],
+   [
+    "PHONE",
+    "(415) 555-0100"
+   ]
+  ],
+  "names": []
+ },
+ {
+  "text": "Gọi cho tôi theo số 0901234567 nhé.",
+  "gold": [
+   [
+    "PHONE",
+    "0901234567"
+   ]
+  ],
+  "names": []
+ },
+ {
+  "text": "Wire to GB82 WEST 1234 5698 7654 32 today.",
+  "gold": [
+   [
+    "IBAN",
+    "GB82 WEST 1234 5698 7654 32"
+   ]
+  ],
+  "names": []
+ },
+ {
+  "text": "IBAN DE89 3704 0044 0532 0130 00 for the refund.",
+  "gold": [
+   [
+    "IBAN",
+    "DE89 3704 0044 0532 0130 00"
+   ]
+  ],
+  "names": []
+ },
+ {
+  "text": "Account no: 12345678",
+  "gold": [
+   [
+    "ACCT",
+    "12345678"
+   ]
+  ],
+  "names": []
+ },
+ {
+  "text": "Số tài khoản: 0123456789012",
+  "gold": [
+   [
+    "ACCT",
+    "0123456789012"
+   ]
+  ],
+  "names": []
+ },
+ {
+  "text": "Mã số thuế: 0312345678",
+  "gold": [
+   [
+    "TAXID",
+    "0312345678"
+   ]
+  ],
+  "names": []
+ },
+ {
+  "text": "EIN 12-3456789 for the filing.",
+  "gold": [
+   [
+    "TAXID",
+    "12-3456789"
+   ]
+  ],
+  "names": []
+ },
+ {
+  "text": "From: Maria Chen <maria.chen@acme-fund.com>\nHi Sam, the form is late.",
+  "gold": [
+   [
+    "EMAIL",
+    "maria.chen@acme-fund.com"
+   ],
+   [
+    "PERSON",
+    "Maria Chen"
+   ],
+   [
+    "PERSON",
+    "Sam"
+   ]
+  ],
+  "names": [
+   "Maria Chen",
+   "Sam Doe"
+  ]
+ },
+ {
+  "text": "Nguyễn Văn Đức will call back on 0912345678.",
+  "gold": [
+   [
+    "PERSON",
+    "Nguyễn Văn Đức"
+   ],
+   [
+    "PHONE",
+    "0912345678"
+   ]
+  ],
+  "names": [
+   "Nguyễn Văn Đức"
+  ]
+ },
+ {
+  "text": "Priya Rao approved it; Rao said it is final.",
+  "gold": [
+   [
+    "PERSON",
+    "Priya Rao"
+   ],
+   [
+    "PERSON",
+    "Rao"
+   ]
+  ],
+  "names": [
+   "Priya Rao"
+  ]
+ },
+ {
+  "text": "Thanks to Jordan Whitfield for staying late.",
+  "gold": [
+   [
+    "PERSON@free",
+    "Jordan Whitfield"
+   ]
+  ],
+  "names": []
+ },
+ {
+  "text": "Ask Elena Petrova in finance about the ledger.",
+  "gold": [
+   [
+    "PERSON@free",
+    "Elena Petrova"
+   ]
+  ],
+  "names": []
+ }
+]

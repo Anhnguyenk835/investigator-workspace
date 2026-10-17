@@ -1,0 +1,10 @@
+.env
+.venv/
+__pycache__/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+seed-plan.json
+seed-plan.truth.json
+seed-state.json

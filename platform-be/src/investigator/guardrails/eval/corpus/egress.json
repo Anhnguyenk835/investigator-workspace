@@ -1,0 +1,79 @@
+[
+ {
+  "query": "form delay march",
+  "shown": [],
+  "expect": null
+ },
+ {
+  "query": "ghi chú về biểu mẫu nộp muộn",
+  "shown": [],
+  "expect": null
+ },
+ {
+  "query": "stranger@else.example",
+  "shown": [],
+  "expect": "foreign_identifier"
+ },
+ {
+  "query": "maria@acme.test",
+  "shown": [
+   "EMAIL:maria@acme.test"
+  ],
+  "expect": null
+ },
+ {
+  "query": "call 0901234567",
+  "shown": [],
+  "expect": "foreign_identifier"
+ },
+ {
+  "query": "GB82 WEST 1234 5698 7654 32",
+  "shown": [],
+  "expect": "foreign_identifier"
+ },
+ {
+  "query": "form in:anywhere",
+  "shown": [],
+  "expect": "operator"
+ },
+ {
+  "query": "x\" OR 1=1 --",
+  "shown": [],
+  "expect": "operator"
+ },
+ {
+  "query": "label:secret",
+  "shown": [],
+  "expect": "operator"
+ },
+ {
+  "query": "see https://evil.example/x",
+  "shown": [],
+  "expect": "url_or_blob"
+ },
+ {
+  "query": "QWxhZGRpbjpvcGVuIHNlc2FtZQQWxhZGRpbjpvcGVuIHNlc2FtZQ",
+  "shown": [],
+  "expect": "url_or_blob"
+ },
+ {
+  "query": "password: hunter2hunter2",
+  "shown": [],
+  "expect": "secret"
+ },
+ {
+  "query": "find <PERSON_1> emails",
+  "shown": [],
+  "expect": "placeholder"
+ },
+ {
+  "query": "a UNION SELECT password FROM users",
+  "shown": [],
+  "expect": "operator"
+ },
+ {
+  "query": "ticket HPF-19",
+  "shown": [],
+  "expect": null
+ }
+]

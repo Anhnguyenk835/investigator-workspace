@@ -1,0 +1,196 @@
+{
+ "Crestline Real Estate Fund": [
+  {
+   "title": "Crestline Real Estate Fund - Capital Call #4 wrong amounts: Call notes",
+   "markdown": "# Capital Call #4 Discrepancy: Call notes\n\n- Attendees: Not recorded\n- What was said: Marcus Lee flagged a $195,070 discrepancy in Capital Call #4 receipts across 14 investors. Sarah Kim and Alex Duong investigated and identified a template change that double-applied the management fee offset for investors with an offset and a side-letter rate. Dana Whitaker noted that investors were already told previous amounts were final, and Elaine Pryce advised that corrected notices must state they supersede the Sep 30 notice, with a wire deadline extension to Monday Oct 19 for affected investors only.\n- Asks: Corrected notices, root-cause analysis, and corrected investor statements for remaining two investors who have not wired funds.\n- Owners: Sarah Kim, Alex Duong\n- Dates: Corrected notices promised by Oct 5 (sent Oct 9 due to legal review); RCA promised by Oct 14."
+  },
+  {
+   "title": "Crestline Real Estate Fund - Capital Call #4 wrong amounts: Internal hand-off",
+   "markdown": "# Capital Call #4 Issue: Internal hand-off\n\n- State: Corrected notices sent to the 14 affected investors on Oct 9. All but two investors have wired funds; Marcus Lee requested a corrected investor statement for those remaining two.\n- Open items: Alex Duong's written root-cause analysis (RCA) is currently a draft and has not been delivered to the customer.\n- Risks: Customer legal review required careful wording (\"supersedes the notice dated Sep 30\") and extended wire deadlines. Commercial terms such as fee waivers remain unagreed.\n- Who to ask: Alex Duong for RCA status, Sarah Kim for customer communication history."
+  },
+  {
+   "title": "Crestline Real Estate Fund - Capital Call #4 wrong amounts: Review",
+   "markdown": "# Capital Call #4 Incident: Review\n\n- What happened: Capital Call #4 notices totaling $12,500,000 went out with understated amounts for 14 investors, totaling $195,070. A template change (template v18) double-applied the management fee offset for investors with an offset and a side-letter rate. Minh Tran pushed the template without waiting for Linh Pham's QA sign-off because the release window was closing.\n- What was learned: The regression suite lacked fixtures for fee offset and side-letter combinations, and QA sign-off was bypassed during deployment. Linh Pham has since added comprehensive regression fixtures and integrated them into the CI pipeline.\n- Open questions: How to strictly enforce QA sign-off gates before production deploys."
+  },
+  {
+   "title": "Crestline Real Estate Fund - Capital Call #4 wrong amounts: Success plan",
+   "markdown": "# Crestline Real Estate Fund - Capital Call #4 Recovery: Success plan\n\n- Goals: Finalize remaining investor statements, deliver the RCA, and restore full confidence in capital call notice accuracy.\n- Owners: Sarah Kim, Alex Duong\n- Checkpoints: Review RCA draft internally and deliver to customer.\n- Dates already committed:\n  - Corrected notices due Oct 5 (sent Oct 9, kept: False)\n  - RCA due Oct 14 (still a draft, kept: False)\n  - Extended wire deadline for affected investors: Monday Oct 19"
+  }
+ ],
+ "Blue Ridge Family Office": [
+  {
+   "title": "Blue Ridge Family Office - SSO go-live slipped past the sold date: Call notes",
+   "markdown": "# Blue Ridge Family Office - Call notes: notes\n\n- Attendees: Tom Becker, Helen Marsh, Arjun Patel, Mai Le, Sarah Kim, Colin Reese, Priya Menon, Alex Duong\n- What was said: Tom wrote that SSO would be live by Sep 30, but implementation's plan had Wednesday Oct 21. Testing exposed a role claim mismatch (groups vs roles) and missing JIT provisioning, which was not in the original implementation scope. Engineering noted Oct 21 is a target, not a commitment, but Sarah told the customer it was the date, and Helen treats it as a commitment.\n- Asks: Helen requested a firm, committed date for SSO implementation in writing and weekly written status updates.\n- Owners: Tom Becker, Sarah Kim, Mai Le, Priya Menon, Alex Duong, Colin Reese\n- Dates: Sep 30, Sep 18, Sep 25, Oct 21"
+  },
+  {
+   "title": "Blue Ridge Family Office - SSO go-live slipped past the sold date: Internal hand-off",
+   "markdown": "# Blue Ridge Family Office - Internal hand-off: note\n\n- State: SSO go-live slipped past the sold date due to scoping and testing issues.\n- Open items: JIT provisioning development in engineering, design review, and weekly written status updates to the customer.\n- Risks: Client failing compliance or internal audit requirements if SSO is not live by the committed date; JIT provisioning depends on zero technical surprises.\n- Who to ask: Mai Le for implementation status, Alex Duong for engineering timeline, Priya Menon for test configuration."
+  },
+  {
+   "title": "Blue Ridge Family Office - SSO go-live slipped past the sold date: Review",
+   "markdown": "# Blue Ridge Family Office - Review: review\n\n- What happened: Sales sold an SSO date (Sep 30) never planned for by implementation (Wednesday Oct 21). Testing exposed two failures: role claim mismatch (groups vs roles) and missing JIT provisioning. Scoping handoff lacked JIT provisioning.\n- What was learned: An expectation is not a commitment. Alex's target must not be reported as a commitment by Anduin, though Sarah's email to the customer did present it as the date. Blame lies in the scoping handoff, not in one person.\n- Open questions: Will engineering complete the JIT provisioning after the design review?"
+  },
+  {
+   "title": "Blue Ridge Family Office - SSO go-live slipped past the sold date: Success plan",
+   "markdown": "# Blue Ridge Family Office - Success plan: plan\n\n- Goals: Complete JIT provisioning, resolve configuration issues, and achieve successful SSO go-live for the client.\n- Owners: Mai Le, Priya Menon, Alex Duong, Sarah Kim\n- Checkpoints: Design review following engineering development; weekly retest right after design review.\n- Dates already committed: October 21 (communicated to the customer by Sarah Kim as the release date)"
+  }
+ ],
+ "Tidewater Capital": [
+  {
+   "title": "Tidewater Capital - Side-letter terms shown wrongly in the portal: Call notes",
+   "markdown": "# Tidewater Capital - Call notes: notes\n\n- Attendees: Ines Duarte, Walter Osei, Sarah Kim\n- What was said: Walter Osei from Kestrel Pension Trust reviewed the portal and noticed the Fund terms tab showed a 1.50% management fee instead of the 1.25% specified in their side letter. Walter asked for confirmation that no capital account statements or upcoming notices were calculated using the incorrect rate.\n- Asks: Kestrel requested confirmation on whether any capital account statements or notices used the incorrect rate.\n- Owners: Sarah Kim\n- Dates: Not recorded"
+  },
+  {
+   "title": "Tidewater Capital - Side-letter terms shown wrongly in the portal: Internal hand-off",
+   "markdown": "# Tidewater Capital - Internal hand-off: note\n\n- State: Investigation ongoing, initial all-clear proven incorrect. 5 of 9 side-letter investors affected.\n- Open items: Prepare the formal corrected written statement to Sofia Marchetti for the board; complete engineering fix for portal templates.\n- Risks: Regulatory and reporting obligations due to incorrect initial statement; potential breach of confidentiality and side-letter administration expectations.\n- Who to ask: Carla Ruiz for compliance details, Minh Tran for schema/engineering details, Sarah Kim for customer communications."
+  },
+  {
+   "title": "Tidewater Capital - Side-letter terms shown wrongly in the portal: Review",
+   "markdown": "# Tidewater Capital - Review: review\n\n- What happened: The portal Fund terms tab displayed class default fee terms (1.50%) instead of negotiated side-letter rates (such as 1.25%) to investors. Portal templates are currently keyed by share class rather than individual side letters.\n- What was learned: Support initially gave an incorrect all-clear statement based on the first report, assuming only one investor was impacted. An audit revealed 5 of 9 side-letter investors were affected, not 3 as first reported.\n- Open questions: How long will the proper design for per-investor override of terms take beyond the interim manual override list? What are the exact reporting steps needed for the board?"
+  },
+  {
+   "title": "Tidewater Capital - Side-letter terms shown wrongly in the portal: Success plan",
+   "markdown": "# Tidewater Capital - Success plan: plan\n\n- Goals: Restore correct fee display functionality, provide transparent and corrected communications to stakeholders, and ensure no calculations were impacted.\n- Owners: Sarah Kim, Carla Ruiz, Minh Tran, Engineering, Compliance\n- Checkpoints: Audit all 9 side-letter investors; disable the Fund terms tab for affected investors.\n- Dates already committed: Compliance committed to audit all 9 side-letter investors by Oct 15 (kept: True, due 2026-10-15); disable the tab for affected investors the same day (done for 3, then 5)."
+  }
+ ],
+ "Meridian Growth Partners": [
+  {
+   "title": "Meridian Growth Partners - KYC backlog before Fund II final close: Call notes",
+   "markdown": "# Meridian Growth Partners - Call notes\n\n- Attendees: Rebecca Stone, Sarah Kim, Hana Nguyen, Carla Ruiz, Alex Duong, along with Rachel Ng and Beth Alvarez from the customer side.\n- What was said: Rebecca apologized for the delay and the communication lapse after October 2. The team reviewed the status of the remaining LPs and discussed the root cause of the verification delay.\n- Asks: The customer requested assistance resolving the remaining pending LPs before the hard final close date of October 26.\n- Owners: Sarah Kim as Customer Success Manager, Engineering (Alex Duong) for technical fixes, and Compliance (Carla Ruiz) for reviewing documentation.\n- Dates: Final close is scheduled for Monday, October 26. Engineering root cause promised by October 8 (delivered). All remaining LPs cleared or explained by October 9 (not met; 6 LPs remained pending)."
+  },
+  {
+   "title": "Meridian Growth Partners - KYC backlog before Fund II final close: Internal hand-off",
+   "markdown": "# Meridian Growth Partners - Internal hand-off\n\n- State: Active escalation regarding Fund II KYC backlog. Technical webhook issue resolved, but 6 LPs remain pending due to document and compliance issues.\n- Open items: Resolve the remaining 6 pending LPs (2 expired documents, 3 name mismatches, 1 sanctions screening hit) before the final close on October 26.\n- Risks: Hard final close deadline on October 26. Compliance policy requires two reviewers for manual KYC and a fully documented decision for sanctions hits, which cannot be rushed.\n- Who to ask: Sarah Kim for customer communication, Carla Ruiz for compliance rules, and Alex Duong for engineering or sync status."
+  },
+  {
+   "title": "Meridian Growth Partners - KYC backlog before Fund II final close: Review",
+   "markdown": "# Meridian Growth Partners - Review\n\n- What happened: Verification vendor VeriDoc rotated its webhook signing secret during maintenance, causing the platform to reject callbacks with HTTP 401 errors and leaving 17 LPs stuck in KYC pending.\n- SLA mismatch: Sales (Tom Becker) quoted 2 business days for KYC verification, whereas the signed order form states 5 business days.\n- Communication breakdown: Hana promised the pending queue would be cleared by Friday, October 2, without checking with Compliance first. Sarah promised daily 9 AM Pacific status updates but stopped sending them after two days until the escalation call.\n- Resolution progress: 17 stuck LPs were identified; 4 were cleared manually, 7 cleared after the engineering fix, and 6 remain pending (2 expired documents, 3 name mismatches, 1 sanctions hit).\n- Open questions: How to ensure sales quotes align strictly with signed order forms, and how to improve monitoring of vendor webhook integrations."
+  },
+  {
+   "title": "Meridian Growth Partners - KYC backlog before Fund II final close: Success plan",
+   "markdown": "# Meridian Growth Partners - Success plan\n\n- Goals: Support Meridian Growth Partners in resolving the remaining 6 pending LPs and successfully reaching their final close.\n- Owners: Sarah Kim (Customer Success), Carla Ruiz (Compliance), and Alex Duong (Engineering).\n- Checkpoints: Daily alignment and monitoring leading up to the final close date.\n- Dates already committed:\n  - October 2: Hana's promised clearance date (not kept).\n  - October 8: Engineering root cause delivery (kept).\n  - October 9: All remaining LPs cleared or explained (not kept; 6 LPs remained pending).\n  - October 26: Hardfinal close date for Fund II."
+  }
+ ],
+ "Silverleaf Ventures": [
+  {
+   "title": "Silverleaf Ventures - A smooth onboarding: Call notes",
+   "markdown": "# Silverleaf Ventures Kickoff Call Notes\n\n- Attendees: Mai Le, Noor Haddad\n- What was said: Mai welcomed Noor aboard Anduin and kicked off the onboarding process. They structured the project into four main milestones including workspace setup and branding, investor data import and verification, and subs, targeting a go-live date of Wednesday Oct 7.\n- Asks: Noor agreed to complete tasks and send over the investor list template by the following Wednesday.\n- Owners: Mai Le and Noor Haddad\n- Dates: Target go-live date is Wednesday Oct 7."
+  },
+  {
+   "title": "Silverleaf Ventures - A smooth onboarding: Internal hand-off",
+   "markdown": "# Silverleaf Ventures Internal Hand-off\n\n- State: Onboarding is fully completed on time and went live on Oct 7 as planned.\n- Open items: None. Outstanding items: not recorded / none.\n- Risks: Nothing went wrong, and there are currently no open issues or escalations.\n- Who to ask: Mai Le and Sarah Kim"
+  },
+  {
+   "title": "Silverleaf Ventures - A smooth onboarding: Review",
+   "markdown": "# Silverleaf Ventures Launch Review\n\n- What happened: Silverleaf onboarding went live on Oct 7 as planned with 48 investors. Workspace setup, investor data import, subscription documents, investor portal setups, and fund admin data syncs were successfully verified with zero issues reported.\n- What was learned: Nothing went wrong. One quick tip noted for future reference is to pay close attention to entity-type mapping (such as selecting Corporation for international SPVs and Trust for family trusts) during the initial data load.\n- Open questions: not recorded"
+  },
+  {
+   "title": "Silverleaf Ventures - A smooth onboarding: Success plan",
+   "markdown": "# Silverleaf Ventures Success Plan\n\n- Goals: Ensure continued smooth operation of the platform, support investors signing documents, and maintain data sync with fund administrators.\n- Owners: Sarah Kim\n- Checkpoints: First-week check-in scheduled to review progress and answer any questions, and a 30-day check-in scheduled by Sarah Kim.\n- Dates already committed: Go-live was Oct 7."
+  }
+ ],
+ "Lotus Pacific Ventures": [
+  {
+   "title": "Lotus Pacific Ventures - Translation errors and e-sign hotfix timing: Call notes",
+   "markdown": "# Lotus Pacific Ventures - Translation and E-Sign Issues: Call Notes\n\n- Attendees: Trần Quốc Bảo, Lê Thu Hà, Nguyễn Minh Châu, Rebecca Stone, Sarah Kim, Hana Nguyen\n- What was said: The customer raised concerns regarding a Vietnamese translation error in clause 4.2 and a discrepancy in the redemption notice (30 vs 60 days) where English remains authoritative per the order form. A separate issue occurred where 6 investors could not complete e-signatures on iOS Safari because the signature pad failed when zoomed. A missed deadline on Friday occurred due to a time zone misunderstanding regarding a promised hotfix time.\n- Asks: Trần Quốc Bảo requested a written explanation detailing the root cause of the e-sign delay and missed deadline.\n- Owners: Sarah Kim appointed as the primary account owner.\n- Dates already committed: Rebecca Stone committed to delivering the written explanation by Monday."
+  },
+  {
+   "title": "Lotus Pacific Ventures - Translation errors and e-sign hotfix timing: Internal hand-off",
+   "markdown": "# Lotus Pacific Ventures - Case Handoff: Internal Hand-Off\n\n- State: Active escalation following translation discrepancies and an iOS Safari e-sign hotfix timing failure.\n- Open items: Delivery of the written explanation of the e-sign delay by Monday.\n- Risks: Client relationship friction and damaged trust with key partners due to missed Friday onboarding deadlines for two important investors.\n- Who to ask: Sarah Kim for account ownership and communication details; Hana Nguyen regarding the time zone miscommunication; Linh Pham or Minh Tran for technical details on the iOS Safari signature pad hotfix."
+  },
+  {
+   "title": "Lotus Pacific Ventures - Translation errors and e-sign hotfix timing: Review",
+   "markdown": "# Lotus Pacific Ventures - Incident Post-Mortem: Review\n\n- What happened: A Vietnamese subscription agreement contained a mistranslation in clause 4.2 and a 30 vs 60 day redemption notice mismatch, with English authoritative per the order form. Additionally, an iOS Safari zoom bug broke the e-signature pad. Hana promised a hotfix at '5pm Thursday' without a time zone. The customer interpreted this as Vietnam time, while release deployed at Pacific time (7am Friday Vietnam), causing a missed Friday-morning signing slot.\n- What was learned: Time zones must always be explicitly stated when communicating deadlines to customers. Translation convenience copies must align closely with English originals to avoid onboarding confusion.\n- Open questions: not recorded"
+  },
+  {
+   "title": "Lotus Pacific Ventures - Translation errors and e-sign hotfix timing: Success plan",
+   "markdown": "# Lotus Pacific Ventures - Success Plan: Remediation and Recovery\n\n- Goals: Restore client confidence, ensure smooth investor onboarding following the iOS Safari hotfix deployment, and address translation review items.\n- Owners: Sarah Kim as primary owner.\n- Checkpoints: Review translation adjustments for clause 4.2 and the redemption notice.\n- Dates already committed: Written explanation to be sent by Monday by Sarah Kim."
+  }
+ ],
+ "Granite Bay Infrastructure": [
+  {
+   "title": "Granite Bay Infrastructure - Silent sync failure to the fund administrator: Call notes",
+   "markdown": "# Granite Bay Infrastructure - Call notes\n\n- Attendees: Not recorded\n- What was said: The nightly sync to Northstar failed from Oct 6 for 10 days because the SFTP key was rotated, and nobody was alerted. Priya Raman from Northstar noticed balances did not match the file last received on Oct 6. Leah Kowalski stated that a week and a half of silent failure is unacceptable and pointed out the support SLA requires notice within 4 hours. Rohan Mehta asked to re-send the missing nightly files so Northstar can reconcile accounts.\n- Asks: Full root cause analysis and immediate update on what other data feeds or metrics may have gone stale.\n- Owners: Rebecca Stone committed to an RCA.\n- Dates: RCA due by Monday Oct 19."
+  },
+  {
+   "title": "Granite Bay Infrastructure - Silent sync failure to the fund administrator: Internal hand-off",
+   "markdown": "# Granite Bay Infrastructure - Internal hand-off\n\n- State: Active incident handling and backfill completed. Backfill ran for all missing dates and Northstar acknowledged the payload.\n- Open items: Deliver the RCA by Monday Oct 19. Set up a monitored alert channel that pages the on-call engineer directly for any sync failures.\n- Risks: SLA breach regarding the 4-hour notification window. Alert routing was misconfigured to a retired mailbox (data-sync-alerts@).\n- Who to ask: Alex Duong for sync investigations, Jake Morales for log reviews, Sarah Kim for customer context, and Rebecca Stone for the RCA commitment."
+  },
+  {
+   "title": "Granite Bay Infrastructure - Silent sync failure to the fund administrator: Review",
+   "markdown": "# Granite Bay Infrastructure - Review\n\n- What happened: The nightly data sync to Northstar for Granite Bay broke following an SFTP key rotation on Oct 6. Authentication was rejected by the remote server every night. Automated alerts failed to notify internal teams or the customer because alerts were routed to a retired mailbox.\n- What was learned: Monitoring alerts must not route to retired mailboxes, and key rotations require active verification of the sync pipeline. Jake Morales missed the weekly log review due to being on leave. Three other customers use the same underlying sync job, though their keys were rotated at different times and connections are active.\n- Open questions: Which other customers might have alerting misconfigured to retired mailboxes?"
+  },
+  {
+   "title": "Granite Bay Infrastructure - Silent sync failure to the fund administrator: Success plan",
+   "markdown": "# Granite Bay Infrastructure - Success plan\n\n- Goals: Restore reliable data sync to Northstar, ensure transparent communication with Granite Bay, and prevent silent failures through robust monitoring.\n- Owners: Rebecca Stone and Sarah Kim.\n- Checkpoints: Re-send missing nightly files and verify reconciliation with Northstar (completed by Jake Morales).\n- Dates already committed: Rebecca committed to delivering a full root cause analysis by Monday Oct 19."
+  }
+ ],
+ "Summit Peak Partners": [
+  {
+   "title": "Summit Peak Partners - Invoice billed invited investors: Call notes",
+   "markdown": "# Summit Peak Partners - Call Notes: Billing Dispute\n\n## Attendees\n- Greg Lindqvist\n- Tom Becker\n- Dan Okafor\n- Tara (not recorded)\n\n## What Was Said\n- Tom Becker and Greg Lindqvist connected to confirm the pricing structure, establishing a flat annual platform fee of USD 48,000 covering up to 150 onboarded investors, with an overage rate of USD 75 per additional onboarded investor per year.\n- Dan Okafor sent invoice INV-20003 for the annual period, which included $22,725 for additional investors (billing 303 investors at USD 75 instead of 11 onboarded above the 150 included).\n- Greg Lindqvist formally disputed invoice INV-20003, stating they currently have 161 onboarded investors, meaning only 11 are billable at USD 75, coming to a total of $825.\n- Tom Becker emailed Greg saying the difference would be completely waived.\n- Dan Okafor reviewed the account and confirmed an error where the system mistakenly counted all invited investors (303) rather than just the onboarded ones (161), and promised a credit memo and a corrected invoice.\n- Greg Lindqvist questioned the discrepancy between Tom's promise of a full waiver and Dan's mention of a credit memo and corrected invoice.\n\n## Asks and Commitments\n- Dan promised a credit memo and corrected invoice within 3 business days, by Friday Oct 9 (not kept).\n- Greg requested immediate resolution to avoid auditor escalation at quarter end and copied his lawyer.\n\n## Open To-Dos\n- [ ] Issue correct invoice for $825\n- [ ] Process credit memo\n- [ ] Fix billing export bug"
+  },
+  {
+   "title": "Summit Peak Partners - Invoice billed invited investors: Internal hand-off",
+   "markdown": "# Summit Peak Partners - Internal Hand-off\n\n## Current State\n- Invoice INV-20003 incorrectly billed Summit Peak Partners for 303 invited investors instead of 11 onboarded investors above the 150 included tier, totaling $22,725 instead of $825.\n- A reissue (INV-20003-R1) was sent reflecting 175 investors based on platform logs, which was still incorrect.\n- Rebecca Stone decided there is no waiver. Dan must correct the invoice to $825 only and issue the credit memo.\n- Sarah Kim owns the communication back to the client.\n\n## Open Items\n- [ ] Correct invoice to $825\n- [ ] Process credit memo separately once final adjustment is approved\n- [ ] Fix the billing usage export bug where bulk import invited investors are counted as onboarded\n\n## Risks\n- The client escalated to their auditor for quarter end and copied their lawyer.\n- Mixed messaging was given to the client: Tom told the customer the difference would be waived, while Finance promised only a correction, and Rebecca decided no waiver.\n\n## Who to Ask\n- Dan Okafor for billing calculations and Jira tracking\n- Sarah Kim for client communication ownership\n- Alex Duong for data export bug details\n- Rebecca Stone for waiver and final approval decisions"
+  },
+  {
+   "title": "Summit Peak Partners - Invoice billed invited investors: Review",
+   "markdown": "# Summit Peak Partners - Review: Billing Incident\n\n## What Happened\n- A flat-fee-plus-per-investor contract was invoiced incorrectly because the billing usage export counted invited investors added by bulk import as onboarded.\n- Invoice INV-20003 billed 303 investors at USD 75 ($22,725) instead of 11 onboarded above the 150 included ($825).\n- A sales waiver clashed with finance: Tom Becker told the customer the amount would be waived, Finance promised only a correction, and Rebecca Stone ultimately decided there is no waiver.\n- A reissue (INV-20003-R1) was sent with incorrect numbers and no credit memo, missing the Friday Oct 9 due date.\n\n## What Was Learned\n- The billing export currently joins on the invited status rather than executed status for investors added via bulk import.\n- Sales representatives must not promise financial waivers without checking with finance first.\n- Cross-functional alignment between sales, finance, and customer success is critical during billing disputes to prevent mixed messaging to clients.\n\n## Open Questions\n- When will the data team deploy the fix for the billing usage export?\n- How will Sarah Kim successfully manage the client relationship after conflicting promises regarding the waiver?"
+  },
+  {
+   "title": "Summit Peak Partners - Invoice billed invited investors: Success plan",
+   "markdown": "# Summit Peak Partners - Customer Success Plan\n\n## Goals\n- Resolve the billing dispute for invoice INV-20003 and restore trust with Summit Peak Partners.\n- Deliver the correct invoice for $825 and apply the corresponding credit memo.\n- Ensure clear, unified communication with the client moving forward.\n\n## Owners\n- Sarah Kim: Client communication ownership\n- Dan Okafor: Billing correction and credit memo processing\n- Alex Duong: Fixing the billing usage export bug\n\n## Checkpoints and Commitments\n- [ ] Send corrected invoice reflecting only 11 billable onboarded investors ($825 total)\n- [ ] Process and apply the credit memo for the overbilled amount\n- [ ] Provide status updates to Sarah Kim regarding the billing correction\n\n## Dates Already Committed\n- Friday Oct 9: Original deadline for credit memo and corrected invoice (missed, not kept)"
+  }
+ ],
+ "": [
+  {
+   "title": "KYC verification runbook",
+   "markdown": "# KYC verification runbook\n\n## How investor verification works\n- Limited partners submit onboarding data through digital subscription documents.\n- Information is automatically passed to our KYC/AML verification vendor for screening.\n- The system waits for a pass, fail, or manual review flag from the vendor.\n\n## Vendor hand-off\n- Payload is sent via API to the vendor upon investor form submission.\n- Webhooks return status updates to Anduin.\n- If the vendor API is unreachable, events queue for retry.\n\n## What to check when LPs are stuck in pending\n- Check the vendor dashboard for unverified identity documents or name mismatches.\n- Verify if the investor is flagged for a Politically Exposed Person (PEP) or sanctions match requiring manual compliance review.\n- Confirm whether the fund administrator or law firm needs to clear an AML exception."
+  },
+  {
+   "title": "Escalation policy and severity levels",
+   "markdown": "# Escalation policy and severity levels\n\n## Severity levels\n- Sev 1: Complete platform outage or major data sync failure impacting all fund managers.\n- Sev 2: Core feature degradation, such as e-signature or KYC vendor hand-off failing for multiple users.\n- Sev 3: Isolated investor portal issues or delayed capital call notices affecting a single fund.\n- Sev 4: Minor UI bugs, general questions, or feature requests.\n\n## Who to page\n- Sev 1: Page the on-call engineer and notify engineering leadership immediately.\n- Sev 2: Page the secondary on-call engineer during business hours.\n- Sev 3 and Sev 4: Handled via standard ticketing queue without paging.\n\n## Response targets\n- Response targets and specific timeframes are not recorded.\n\n## Customer communication rules\n- Keep fund managers informed with status updates during Sev 1 incidents.\n- Do not share internal vendor failure specifics with limited partners; coordinate messaging with the fund manager."
+  },
+  {
+   "title": "Service levels by plan",
+   "markdown": "# Service levels by plan\n\n## Plan tiers and promises\n- Standard Plan: Verification via vendor included, standard support response, uptime not recorded.\n- Professional Plan: Verification via vendor included, priority support response, uptime not recorded.\n- Enterprise Plan: Verification via vendor included, dedicated support response, uptime guarantees not recorded."
+  },
+  {
+   "title": "Customer onboarding checklist",
+   "markdown": "# Customer onboarding checklist\n\n- [ ] Collect fund manager profile and organization details\n- [ ] Set up digital subscription documents workspace\n- [ ] Configure investor onboarding and KYC/AML verification through the vendor\n- [ ] Establish e-signature workflows\n- [ ] Test data sync to fund administrators\n- [ ] Set up access to the investor portal for limited partners (LPs)"
+  },
+  {
+   "title": "Webhook incident playbook",
+   "markdown": "# Webhook incident playbook\n\n## Detection\n- Monitor vendor callback failures and alert engineering when vendor callbacks fail\n\n## Rollback\n- Revert affected transaction states if vendor callbacks fail repeatedly\n\n## Comms\n- Notify affected fund managers and internal stakeholders about vendor callback issues\n\n## Follow-up\n- Investigate root cause of vendor callback failures and document resolution steps"
+  },
+  {
+   "title": "Capital call notice process",
+   "markdown": "# Capital call notice process\n\n## Steps to prepare, approve and send capital call notices\n1. Prepare capital call and distribution notices within the platform\n2. Review notice details with the fund manager and legal counsel or law firms\n3. Obtain formal approval from authorized fund manager personnel\n4. Send capital call notices to investors (limited partners, LPs) via the investor portal\n\n## Common errors\n- Incorrect capital call amounts or wire instructions\n- Mismatched investor allocations and commitment data\n- Outdated investor contact information leading to delivery failure"
+  },
+  {
+   "title": "Renewals calendar",
+   "markdown": "# Renewals calendar\n\n## Overview\n- Tracking account renewals by month, assigned owners, and identified risks.\n\n## Renewals by Month\n- Month: not recorded\n- Account: not recorded\n- Owner: not recorded\n- Risk: not recorded\n\n## Action Items\n- [ ] Populate upcoming renewal dates as contracts approach expiration.\n- [ ] Review risk factors with account owners."
+  },
+  {
+   "title": "Support reply guidelines",
+   "markdown": "# Support reply guidelines\n\n## Tone\n- Maintain a professional, helpful, and courteous tone when communicating with fund managers, law firms, fund administrators, and investors (limited partners, LPs).\n\n## What Never to Promise\n- Never promise bug fixes, feature releases, or delivery dates without explicit confirmation from Engineering.\n\n## How to Quote Dates\n- Only quote dates that have been officially confirmed by Engineering or product management. Avoid estimating timelines if unsure."
+  },
+  {
+   "title": "Security questionnaire answers",
+   "markdown": "# Security questionnaire answers\n\n## Reusable Answers\n- Encryption: not recorded\n- Access Control: not recorded\n- Data Residency: not recorded\n- Sub-processors: KYC/AML verification through a vendor; data sync to fund administrators.\n- Incident Notice: not recorded"
+  },
+  {
+   "title": "Data room permissions guide",
+   "markdown": "# Data room permissions guide\n\n## Overview\nThis guide outlines how permissions are granted in the data room to limited partners (LPs), legal counsel, and fund administrators within Anduin.\n\n## Granting Permissions\n- LPs: Access is granted at the investor profile level, linking their authenticated portal user to specific subscription documents and capital notices.\n- Counsel: Law firms are granted access to specific fund documents, subscription packets, and KYC/AML verification records based on their engagement scope.\n- Administrators: Fund administrators receive broad data room access to facilitate data syncs, investor onboarding verification, and reporting.\n\n## Common Mistakes\n- Assigning incorrect permission tiers to external law firm counsel, occasionally exposing multi-fund data instead of single-fund documents.\n- Forgetting to revoke data room access for LPs who have fully transferred or redeemed their fund interests.\n- Granting administrative sync permissions to standard LP user profiles by accident.\n\n- [ ] Audit all active counsel permissions for closed funds\n- [ ] Update internal checklist for administrator onboarding"
+  },
+  {
+   "title": "Release notes, last quarter",
+   "markdown": "# Release notes, last quarter\n\n## Q3 Product Updates\n\n- October 12: Added enhanced filtering options for capital call and distribution notices, allowing fund managers to sort by payment status and wire confirmation.\n- September 28: Updated the investor portal dashboard to display real-time KYC/AML verification status through our vendor integration.\n- September 14: Released bulk e-signature reminders for limited partners who have pending subscription documents.\n- August 30: Improved data sync reliability between Anduin and major fund administrator platforms, reducing latency for ledger updates.\n- August 15: Introduced customizable email notification templates for onboarding progress updates sent to investors.\n- July 3: Added support for multi-currency tracking on capital call notices."
+  },
+  {
+   "title": "Weekly CS sync, notes",
+   "markdown": "# Weekly CS sync, notes\n\n## Week 1\n- Date: not recorded\n- Discussion: Reviewed onboarding bottlenecks for three new venture capital fund clients. Law firm counterparties reported delays with document signing links.\n- Decision: Standardize initial email templates sent to external counsel.\n- Action Item: Sarah to follow up with the fund administrator regarding missing wire instructions.\n\n## Week 2\n- Date: not recorded\n- Discussion: Addressed data sync errors between Anduin and the fund administrator for a large private equity account.\n- Decision: Escalate sync timeout logs to the engineering team.\n- Action Item: Mark to review API error logs and update the affected client.\n\n## Week 3\n- Date: not recorded\n- Discussion: Evaluated LP portal login issues reported by family office investors.\n- Decision: Enable self-service password reset prompts for all external users.\n- Action Item: Support team to draft an updated FAQ guide for portal access.\n\n## Week 4\n- Date: not recorded\n- Discussion: Checked quarterly milestone progress across all active accounts. Client satisfaction scores remain stable.\n- Decision: Schedule quarterly check-in calls with top-tier fund managers.\n- Action Item: Alex to send out calendar invites for next month's review sessions."
+  }
+ ]
+}

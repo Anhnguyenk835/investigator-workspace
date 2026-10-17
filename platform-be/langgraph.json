@@ -1,0 +1,7 @@
+{
+  "dependencies": ["."],
+  "graphs": {
+    "investigation": "./src/investigator/agents/investigation/studio.py:graph"
+  },
+  "env": ".env"
+}

