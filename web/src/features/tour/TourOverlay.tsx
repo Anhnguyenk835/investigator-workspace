@@ -1,9 +1,17 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Button } from '@/components/ui'
-import type { Placement, TourStep } from '@/features/tour/tours'
+import { Button, Icon } from '@/components/ui'
+import type { Placement, TourStep, Variant } from '@/features/tour/tours'
 
-const GAP = 12
+/** A small square turned 45 degrees, bordered on the two sides that show, on the edge facing the target. */
+const ARROW: Record<Placement, string> = {
+  right: 'absolute -left-[7px] size-3 -translate-y-1/2 rotate-45 border-b border-l border-line bg-surface',
+  left: 'absolute -right-[7px] size-3 -translate-y-1/2 rotate-45 border-r border-t border-line bg-surface',
+  bottom: 'absolute -top-[7px] size-3 -translate-x-1/2 rotate-45 border-l border-t border-line bg-surface',
+  top: 'absolute -bottom-[7px] size-3 -translate-x-1/2 rotate-45 border-b border-r border-line bg-surface',
+}
+
+const GAP = 16
 const MARGIN = 12
 const PAD = 4
 const WAIT_MS = 3000
@@ -105,6 +113,7 @@ function place(box: Box, card: { width: number; height: number }, want: Placemen
     top = side === 'bottom' ? box.top + box.height + GAP : box.top - GAP - card.height
   }
   return {
+    side,
     top: Math.min(Math.max(top, MARGIN), Math.max(vh - card.height - MARGIN, MARGIN)),
     left: Math.min(Math.max(left, MARGIN), Math.max(vw - card.width - MARGIN, MARGIN)),
   }
@@ -112,6 +121,7 @@ function place(box: Box, card: { width: number; height: number }, want: Placemen
 
 interface Props {
   step: TourStep
+  variant: Variant
   index: number
   total: number
   onBack: () => void
@@ -120,7 +130,7 @@ interface Props {
   onMissing: () => void
 }
 
-export function TourOverlay({ step, index, total, onBack, onNext, onSkip, onMissing }: Props) {
+export function TourOverlay({ step, variant, index, total, onBack, onNext, onSkip, onMissing }: Props) {
   const { box, missing } = useTarget(step.target, onMissing, Boolean(step.optional))
   const cardRef = useRef<HTMLDivElement>(null)
   const nextRef = useRef<HTMLButtonElement>(null)
@@ -151,7 +161,6 @@ export function TourOverlay({ step, index, total, onBack, onNext, onSkip, onMiss
   }, [waiting, step.id])
 
   const next = () => {
-    if (step.clickOnNext && step.target) visible(step.target)?.click()
     onNext()
   }
 
@@ -184,27 +193,36 @@ export function TourOverlay({ step, index, total, onBack, onNext, onSkip, onMiss
   // On a narrow screen the card spans the width, above or below what it points at.
   const narrow = window.innerWidth < 640
   let style: React.CSSProperties
+  let arrow: { side: Placement; offset: number } | null = null
   if (spotlight && box) {
     if (narrow) {
       const below = box.top + box.height / 2 < window.innerHeight / 2
       style = { left: MARGIN, right: MARGIN, ...(below ? { bottom: MARGIN } : { top: MARGIN }) }
     } else {
-      style = place(box, size, step.placement ?? 'bottom')
+      const at = place(box, size, step.placement ?? 'bottom')
+      style = { top: at.top, left: at.left }
+      // The arrow sits on the edge facing the target, level with the target's centre.
+      const vertical = at.side === 'left' || at.side === 'right'
+      const centre = vertical ? box.top + box.height / 2 - at.top : box.left + box.width / 2 - at.left
+      arrow = { side: at.side, offset: Math.min(Math.max(centre, 20), (vertical ? size.height : size.width) - 20) }
     }
   } else {
     style = { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }
   }
+
+  // An optional step whose target has not appeared yet shows nothing: it either appears or is skipped.
+  if (waiting && step.optional) return null
 
   return createPortal(
     <div className="fixed inset-0 z-[100]">
       {spotlight && box ? (
         <div
           aria-hidden="true"
-          className="pointer-events-none fixed outline-2 outline-primary transition-[top,left,width,height] duration-200 motion-reduce:transition-none"
-          style={{ ...box, boxShadow: '0 0 0 9999px color-mix(in srgb, var(--color-ink) 55%, transparent)' }}
+          className="pointer-events-none fixed transition-[top,left,width,height] duration-200 motion-reduce:transition-none"
+          style={{ ...box, boxShadow: '0 0 0 2px var(--color-surface), 0 0 0 9999px color-mix(in srgb, var(--color-ink) 45%, transparent)' }}
         />
       ) : (
-        <div aria-hidden="true" className="absolute inset-0 bg-ink/55" />
+        <div aria-hidden="true" className="absolute inset-0 bg-ink/45" />
       )}
       {/* The page behind is inert while a step is open: Next does the navigating. */}
       <div className="absolute inset-0" aria-hidden="true" />
@@ -215,30 +233,36 @@ export function TourOverlay({ step, index, total, onBack, onNext, onSkip, onMiss
         aria-labelledby="tour-title"
         aria-describedby="tour-body"
         style={style}
-        className={`fixed flex w-[min(22.5rem,calc(100vw-1.5rem))] flex-col gap-3 border border-line bg-surface p-4 shadow-lg ${narrow && spotlight ? 'w-auto' : ''}`}
+        className={`fixed flex w-[min(22.5rem,calc(100vw-1.5rem))] flex-col gap-4 border border-line bg-surface p-5 shadow-lg ${narrow && spotlight ? 'w-auto' : ''}`}
       >
-        <p className="text-overline uppercase text-ink-muted">
-          Step {index + 1} of {total}
-        </p>
-        <div className="flex flex-col gap-1">
-          <h2 id="tour-title" className="text-body font-medium text-ink">
-            {step.title}
-          </h2>
-          <p id="tour-body" className="text-caption text-ink-muted">
-            {waiting ? 'Loading…' : step.body}
+        {arrow ? <span aria-hidden="true" className={ARROW[arrow.side]} style={arrow.side === 'left' || arrow.side === 'right' ? { top: arrow.offset } : { left: arrow.offset }} /> : null}
+        <div className="flex items-center gap-3">
+          <span aria-hidden="true" className="flex size-8 items-center justify-center bg-primary text-primary-fg">
+            <Icon name="search" className="size-4" />
+          </span>
+          <p className="text-caption text-ink-muted" aria-label={`Step ${index + 1} of ${total}`}>
+            {index + 1} / {total}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" onClick={onSkip}>
+        <div className="flex flex-col gap-1.5">
+          <h2 id="tour-title" className="text-heading text-ink">
+            {step.title}
+          </h2>
+          <p id="tour-body" className="text-body text-ink-muted">
+            {waiting ? 'Loading…' : typeof step.body === 'string' ? step.body : step.body[variant]}
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button type="button" className="text-body text-ink-muted hover:text-ink hover:underline" onClick={onSkip}>
             Skip tour
-          </Button>
+          </button>
           <span className="flex-1" />
           {index > 0 ? (
-            <Button variant="outline" size="sm" onClick={onBack}>
+            <Button variant="ghost" onClick={onBack}>
               Back
             </Button>
           ) : null}
-          <Button ref={nextRef} size="sm" onClick={next} disabled={waiting}>
+          <Button ref={nextRef} onClick={next} disabled={waiting}>
             {last ? 'Done' : 'Next'}
           </Button>
         </div>

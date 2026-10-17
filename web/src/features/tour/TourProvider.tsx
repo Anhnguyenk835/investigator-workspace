@@ -1,95 +1,111 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { TourOverlay } from '@/features/tour/TourOverlay'
-import { TOURS, type TourId } from '@/features/tour/tours'
-import { readJson, writeJson } from '@/lib/storage'
+import { pageOf, TOURS, type TourId, type Variant } from '@/features/tour/tours'
+import { readJson, removeKey, writeJson } from '@/lib/storage'
 
-/** Bump the version to show an updated tour to people who finished the old one. */
-const KEY = (id: TourId) => `investigator.tour.v1.${id}`
+/** Bump the version to show updated guides to people who have seen the old ones. */
+const KEY = (variant: Variant, id: TourId) => `investigator.tour.v2.${variant}.${id}`
 export const NAV_EVENT = 'tour:nav'
+const PAGES = Object.keys(TOURS) as TourId[]
 
 interface TourApi {
-  /** Whether a tour is on screen. */
+  /** Whether a guide is on screen. */
   running: boolean
-  /** Start the tour for the current mode from its first step. */
-  start: () => void
+  /** The open page has its own guide. */
+  hasGuide: boolean
+  /** Show the guide of the page that is open (the introduction on a page without one). */
+  startHere: () => void
+  /** Show the introduction. */
+  startIntro: () => void
+  /** Show every page guide again, the next time each page is opened. */
+  resetPages: () => void
 }
 
 const TourContext = createContext<TourApi | null>(null)
 
-function seen(id: TourId): boolean {
-  const v = readJson(KEY(id))
+function seen(variant: Variant, id: TourId): boolean {
+  const v = readJson(KEY(variant, id))
   return typeof v === 'object' && v !== null && 'status' in v
 }
 
-function remember(id: TourId, status: 'done' | 'skipped') {
-  writeJson(KEY(id), { status, at: new Date().toISOString() })
+function remember(variant: Variant, id: TourId, status: 'done' | 'skipped') {
+  writeJson(KEY(variant, id), { status, at: new Date().toISOString() })
 }
 
 export function TourProvider({ children }: { children: ReactNode }) {
   const { mode } = useAuth()
   const location = useLocation()
-  const navigate = useNavigate()
-  const id: TourId | undefined = mode === 'demo' ? 'demo' : mode === 'user' || mode === 'disabled' ? 'user' : undefined
-  const [index, setIndex] = useState<number | null>(null)
+  const variant: Variant | undefined = mode === 'demo' ? 'demo' : mode === 'user' || mode === 'disabled' ? 'user' : undefined
+  const [run, setRun] = useState<{ id: TourId; index: number } | null>(null)
   const direction = useRef<1 | -1>(1)
-  const autoStarted = useRef(false)
-  const steps = id ? TOURS[id] : []
-  const step = index !== null ? steps[index] : undefined
+  const steps = run ? TOURS[run.id] : []
+  const step = run ? steps[run.index] : undefined
+  const page = pageOf(location.pathname)
 
   const close = useCallback(
     (status: 'done' | 'skipped') => {
-      if (id) remember(id, status)
+      if (variant && run) remember(variant, run.id, status)
       window.dispatchEvent(new CustomEvent(NAV_EVENT, { detail: false }))
-      setIndex(null)
+      setRun(null)
     },
-    [id],
+    [variant, run],
   )
 
   const go = useCallback(
     (to: number) => {
-      if (!id) return
-      if (to >= TOURS[id].length) return close('done')
+      if (!run) return
+      if (to >= TOURS[run.id].length) return close('done')
       if (to < 0) return
-      direction.current = to >= (index ?? 0) ? 1 : -1
-      setIndex(to)
+      direction.current = to >= run.index ? 1 : -1
+      setRun({ id: run.id, index: to })
     },
-    [id, index, close],
+    [run, close],
   )
 
-  // First visit: start once, on the page people land on after signing in.
+  // The first time somebody is in the app, the introduction; after it, a page's guide the
+  // first time that page is opened. Only one guide at a time, and never over a running one.
   useEffect(() => {
-    if (!id || autoStarted.current || location.pathname !== '/investigations') return
-    autoStarted.current = true
-    if (seen(id)) return
-    const t = window.setTimeout(() => setIndex(0), 600)
+    if (!variant || run) return
+    const next: TourId | undefined = !seen(variant, 'intro') ? 'intro' : page && !seen(variant, page) ? page : undefined
+    if (!next) return
+    const t = window.setTimeout(() => setRun({ id: next, index: 0 }), 700)
     return () => window.clearTimeout(t)
-  }, [id, location.pathname])
+  }, [variant, run, page, location.pathname])
 
-  // A step lives on one page; go there when the person is elsewhere.
   useEffect(() => {
-    if (step?.route && location.pathname !== step.route) navigate(step.route)
     window.dispatchEvent(new CustomEvent(NAV_EVENT, { detail: Boolean(step?.nav) }))
-    // Only a change of step moves the page; the person may go elsewhere while a step is open.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step?.id])
+  }, [step?.id, step?.nav])
 
-  const api = useMemo<TourApi>(() => ({ running: index !== null, start: () => setIndex(0) }), [index])
+  const api = useMemo<TourApi>(
+    () => ({
+      running: run !== null,
+      hasGuide: page !== undefined,
+      startHere: () => setRun({ id: page ?? 'intro', index: 0 }),
+      startIntro: () => setRun({ id: 'intro', index: 0 }),
+      resetPages: () => {
+        if (!variant) return
+        for (const id of PAGES) if (id !== 'intro') removeKey(KEY(variant, id))
+      },
+    }),
+    [run, page, variant],
+  )
 
   return (
     <TourContext.Provider value={api}>
       {children}
-      {step && index !== null ? (
+      {step && run && variant ? (
         <TourOverlay
-          key={step.id}
+          key={`${run.id}.${step.id}`}
           step={step}
-          index={index}
+          variant={variant}
+          index={run.index}
           total={steps.length}
-          onBack={() => go(index - 1)}
-          onNext={() => go(index + 1)}
+          onBack={() => go(run.index - 1)}
+          onNext={() => go(run.index + 1)}
           onSkip={() => close('skipped')}
-          onMissing={() => go(index + direction.current)}
+          onMissing={() => go(run.index + direction.current)}
         />
       ) : null}
     </TourContext.Provider>

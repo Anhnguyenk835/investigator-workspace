@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Button, Card, CardBody, CardHeader, Select } from '@/components/ui'
+import { useToast } from '@/components/ui/Toast'
 import { useTour } from '@/features/tour'
 import { Field } from '@/components/shared/Field'
 import { PageHeader } from '@/components/shared/PageHeader'
@@ -11,13 +12,14 @@ export function SettingsPage() {
   const { timezone, setTimezone } = useSettings()
   const { mode, user } = useAuth()
   const tour = useTour()
+  const toast = useToast()
   const zones: string[] = TIMEZONES.includes(timezone as (typeof TIMEZONES)[number]) ? [...TIMEZONES] : [timezone, ...TIMEZONES]
 
   return (
     <>
       <PageHeader title="Settings" description="Display preferences for this browser." />
       <div className="grid max-w-3xl gap-6">
-        <Card>
+        <Card data-tour="settings-account">
           <CardHeader>
             <h2 className="text-body font-medium">Account</h2>
           </CardHeader>
@@ -58,10 +60,21 @@ export function SettingsPage() {
             <h2 className="text-body font-medium">Help</h2>
           </CardHeader>
           <CardBody className="flex flex-col items-start gap-3 text-body text-ink">
-            <p className="text-caption text-ink-muted">A short guided tour of investigations, connectors and the directory.</p>
-            <Button variant="outline" onClick={tour.start}>
-              Take the tour
-            </Button>
+            <p className="text-caption text-ink-muted">A short introduction, and a guide the first time you open each page.</p>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" onClick={tour.startIntro}>
+                Take the introduction
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  tour.resetPages()
+                  toast.success('Page guides reset', 'Each page shows its guide again the next time you open it.')
+                }}
+              >
+                Show page guides again
+              </Button>
+            </div>
           </CardBody>
         </Card>
 

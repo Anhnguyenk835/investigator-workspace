@@ -101,7 +101,7 @@ export function InvestigationsPage() {
 
       {query.status === 'success' && all.length > 0 ? (
         <>
-          <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,2fr)_repeat(2,minmax(0,1fr))_auto]">
+          <div data-tour="list-filters" className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,2fr)_repeat(2,minmax(0,1fr))_auto]">
             <SearchInput label="Search investigations" placeholder="Search by title, ticket or question" value={search} onChange={setSearch} />
             <Select aria-label="Filter by status" value={status} onChange={(e) => setStatus(e.target.value)}>
               <option value="all">All statuses</option>
@@ -147,7 +147,7 @@ export function InvestigationsPage() {
                   {sorted.map((i, row) => (
                     <tr key={i.id} onClick={() => navigate(`/investigations/${i.id}`)} className="cursor-pointer hover:bg-primary/5">
                       <Td>
-                        <Link to={`/investigations/${i.id}`} data-tour={i.sample && sorted.findIndex((x) => x.sample) === row ? 'sample-row' : undefined} onClick={(e) => e.stopPropagation()} className="font-medium text-ink underline-offset-2 hover:underline">
+                        <Link to={`/investigations/${i.id}`} data-tour={row === 0 ? 'first-row' : undefined} onClick={(e) => e.stopPropagation()} className="font-medium text-ink underline-offset-2 hover:underline">
                           {i.title}
                         </Link>
                         {i.sample ? (

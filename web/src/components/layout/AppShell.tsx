@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { Button, Icon, type IconName } from '@/components/ui'
 import { useAuth } from '@/features/auth/AuthProvider'
@@ -63,53 +63,100 @@ function initials(text: string): string {
   return ((parts[0]?.[0] ?? '?') + (parts[1]?.[0] ?? '')).toUpperCase()
 }
 
-/** Who is signed in, and the way out. In the demo, the way to a real account. */
+/** Who is signed in. Opens a menu: the guide for this page, and the way out (in the demo, out of it). */
 function AccountBlock() {
   const { mode, user, isDemo, signOut } = useAuth()
+  const tour = useTour()
   const navigate = useNavigate()
-  if (mode === 'disabled' || mode === 'loading' || mode === 'anonymous') return null
+  const [open, setOpen] = useState(false)
+  const box = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const onDown = (e: MouseEvent) => !box.current?.contains(e.target as Node) && setOpen(false)
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false)
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+
+  if (mode === 'loading' || mode === 'anonymous') return null
+  const guide = tour.hasGuide ? 'Guide for this page' : 'Take the tour'
+  const item = 'flex w-full items-center gap-2 px-3 py-2 text-left text-caption text-ink hover:bg-surface-muted focus-visible:bg-surface-muted'
+
+  // Without sign-in there is no account to show, only the guide.
+  if (mode === 'disabled') {
+    return (
+      <button type="button" className="w-fit text-caption text-ink-muted hover:text-ink hover:underline" onClick={tour.startHere}>
+        {guide}
+      </button>
+    )
+  }
+
   const label = isDemo ? 'Demo visitor' : (user?.name ?? user?.email ?? 'Signed in')
   return (
-    <div className="flex items-center gap-3">
-      {user?.picture && !isDemo ? (
-        <img src={user.picture} alt="" referrerPolicy="no-referrer" className="size-8 shrink-0 rounded-full border border-line" />
-      ) : (
-        <span aria-hidden="true" className="flex size-8 shrink-0 items-center justify-center rounded-full border border-line bg-surface-muted text-caption font-medium text-ink">
-          {isDemo ? <Icon name="user" className="size-4" /> : initials(label)}
-        </span>
-      )}
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-caption font-medium text-ink">{label}</p>
-        {!isDemo && user?.email && user.email !== label ? <p className="truncate text-overline text-ink-muted">{user.email}</p> : null}
-        {isDemo ? <p className="text-overline text-ink-muted">Mock data</p> : null}
-      </div>
-      <Button
-        variant="ghost"
-        size="sm"
-        title={isDemo ? 'Leave the demo' : 'Sign out'}
-        aria-label={isDemo ? 'Leave the demo' : 'Sign out'}
-        onClick={async () => {
-          await signOut()
-          navigate('/login', { replace: true })
-        }}
+    <div ref={box} className="relative">
+      {open ? (
+        <div role="menu" aria-label="Account" className="absolute inset-x-0 bottom-full mb-2 border border-line bg-surface py-1 shadow-lg">
+          <button
+            type="button"
+            role="menuitem"
+            className={item}
+            onClick={() => {
+              setOpen(false)
+              tour.startHere()
+            }}
+          >
+            <Icon name="info" className="size-4 text-ink-muted" />
+            {guide}
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            className={item}
+            onClick={async () => {
+              setOpen(false)
+              await signOut()
+              navigate('/login', { replace: true })
+            }}
+          >
+            <Icon name="external" className="size-4 rotate-180 text-ink-muted" />
+            {isDemo ? 'Leave the demo' : 'Log out'}
+          </button>
+        </div>
+      ) : null}
+      <button
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center gap-3 p-1 text-left hover:bg-surface-muted"
       >
-        <Icon name="external" className="size-4 rotate-180" />
-      </Button>
+        {user?.picture && !isDemo ? (
+          <img src={user.picture} alt="" referrerPolicy="no-referrer" className="size-8 shrink-0 rounded-full border border-line" />
+        ) : (
+          <span aria-hidden="true" className="flex size-8 shrink-0 items-center justify-center rounded-full border border-line bg-surface-muted text-caption font-medium text-ink">
+            {isDemo ? <Icon name="user" className="size-4" /> : initials(label)}
+          </span>
+        )}
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-caption font-medium text-ink">{label}</span>
+          {!isDemo && user?.email && user.email !== label ? <span className="block truncate text-overline text-ink-muted">{user.email}</span> : null}
+          {isDemo ? <span className="block text-overline text-ink-muted">Mock data</span> : null}
+        </span>
+        <Icon name="chevronRight" className="size-4 shrink-0 -rotate-90 text-ink-muted" />
+      </button>
     </div>
   )
 }
 
 function SidebarFooter() {
-  const tour = useTour()
   return (
-    <div className="mt-auto flex flex-col gap-3 border-t border-line-subtle px-4 py-4">
+    <div className="mt-auto border-t border-line-subtle px-3 py-3">
       <AccountBlock />
-      <button type="button" className="w-fit text-caption text-ink-muted hover:text-ink hover:underline" onClick={tour.start}>
-        Take the tour
-      </button>
-      <Link to="/system" className="text-caption text-ink-muted hover:text-ink hover:underline">
-        Design system
-      </Link>
     </div>
   )
 }

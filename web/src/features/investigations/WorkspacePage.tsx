@@ -90,7 +90,7 @@ function Header({ b, onChanged }: { b: InvestigationBundle; onChanged: () => voi
       title={inv.title}
       description={scope.join(' · ') || undefined}
       actions={
-        <>
+        <span data-tour="workspace-actions" className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => setExporting(true)}>
             <Icon name="download" /> Export
           </Button>
@@ -148,7 +148,7 @@ function Header({ b, onChanged }: { b: InvestigationBundle; onChanged: () => voi
               else toast.error('Could not start another run')
             }}
           />
-        </>
+        </span>
       }
       meta={
         <>
