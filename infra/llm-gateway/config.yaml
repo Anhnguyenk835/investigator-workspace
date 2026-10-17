@@ -1,0 +1,50 @@
+# Services call logical routes (`fast`, `strong`), never provider model ids.
+# Primary is Gemini; OpenAI and Anthropic are fallbacks. All cheap-tier models.
+model_list:
+  # Extraction, classification, summarising individual evidence items.
+  - model_name: fast
+    litellm_params:
+      model: gemini/gemini-3.1-flash-lite
+      api_key: os.environ/GEMINI_API_KEY
+
+  - model_name: fast-openai-fallback
+    litellm_params:
+      model: openai/gpt-4o-mini
+      api_key: os.environ/OPENAI_API_KEY
+
+  - model_name: fast-anthropic-fallback
+    litellm_params:
+      model: anthropic/claude-haiku-4-5
+      api_key: os.environ/ANTHROPIC_API_KEY
+
+  # Cross-evidence reasoning: timelines, contradictions, next actions.
+  - model_name: strong
+    litellm_params:
+      model: gemini/gemini-3.5-flash-lite
+      api_key: os.environ/GEMINI_API_KEY
+
+  - model_name: strong-openai-fallback
+    litellm_params:
+      model: openai/gpt-4.1-mini
+      api_key: os.environ/OPENAI_API_KEY
+
+  - model_name: strong-anthropic-fallback
+    litellm_params:
+      model: anthropic/claude-haiku-4-5
+      api_key: os.environ/ANTHROPIC_API_KEY
+
+litellm_settings:
+  drop_params: true
+  num_retries: 2
+  request_timeout: 120
+
+router_settings:
+  routing_strategy: simple-shuffle
+  fallbacks:
+    - fast: ["fast-openai-fallback", "fast-anthropic-fallback"]
+    - strong: ["strong-openai-fallback", "strong-anthropic-fallback"]
+  allowed_fails: 3
+  cooldown_time: 30
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
