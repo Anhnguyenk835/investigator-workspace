@@ -8,3 +8,4 @@ __pycache__/
 seed-plan.json
 seed-plan.truth.json
 seed-state.json
+seed-notion-state.json
