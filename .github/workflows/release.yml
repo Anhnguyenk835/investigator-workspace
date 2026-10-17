@@ -22,6 +22,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write
     strategy:
       fail-fast: false
       matrix:
@@ -36,10 +37,27 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      # With a GCP project configured, the same build is also pushed to Artifact Registry,
+      # which is where Cloud Run pulls from.
+      - id: gcp
+        if: vars.GCP_PROJECT_ID != ''
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOYER_SERVICE_ACCOUNT }}
+          token_format: access_token
+      - if: vars.GCP_PROJECT_ID != ''
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ vars.GCP_REGION }}-docker.pkg.dev
+          username: oauth2accesstoken
+          password: ${{ steps.gcp.outputs.access_token }}
       - id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}
+          images: |
+            ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}
+            ${{ vars.GCP_PROJECT_ID != '' && format('{0}-docker.pkg.dev/{1}/{2}-images/{3}', vars.GCP_REGION, vars.GCP_PROJECT_ID, vars.GCP_NAME_PREFIX, matrix.image) || '' }}
           tags: |
             type=sha,prefix=sha-,format=short
             type=raw,value=staging
@@ -62,41 +80,34 @@ jobs:
           TRIVY_USERNAME: ${{ github.actor }}
           TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
 
-  # Runs only once a staging host is configured (repository variable STAGING_HOST plus the
-  # staging environment's STAGING_USER variable and STAGING_SSH_KEY secret).
-  deploy-staging:
+  # Deploys the new api and web images to Cloud Run. Runs only when the repository variables
+  # written by `terraform output github_variables` are set. The gateway is not built here: it
+  # is a pinned upstream image managed by Terraform.
+  deploy-demo:
     needs: images
-    if: vars.STAGING_HOST != ''
+    if: vars.GCP_PROJECT_ID != ''
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-    environment: staging
+    timeout-minutes: 15
+    environment: demo
+    permissions:
+      contents: read
+      id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOYER_SERVICE_ACCOUNT }}
       - id: tag
         run: echo "tag=sha-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
-      - name: Copy the compose file
-        uses: appleboy/scp-action@v0.1.7
+      - name: Deploy the API
+        uses: google-github-actions/deploy-cloudrun@v2
         with:
-          host: ${{ vars.STAGING_HOST }}
-          username: ${{ vars.STAGING_USER }}
-          key: ${{ secrets.STAGING_SSH_KEY }}
-          source: deploy/compose.staging.yml
-          target: investigator
-          strip_components: 1
-      - name: Pull and restart
-        uses: appleboy/ssh-action@v1.2.0
-        env:
-          GHCR_USER: ${{ github.actor }}
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ steps.tag.outputs.tag }}
+          service: ${{ vars.GCP_NAME_PREFIX }}-api
+          region: ${{ vars.GCP_REGION }}
+          image: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.GCP_NAME_PREFIX }}-images/investigator-api:${{ steps.tag.outputs.tag }}
+      - name: Deploy the web app
+        uses: google-github-actions/deploy-cloudrun@v2
         with:
-          host: ${{ vars.STAGING_HOST }}
-          username: ${{ vars.STAGING_USER }}
-          key: ${{ secrets.STAGING_SSH_KEY }}
-          envs: GHCR_USER,GHCR_TOKEN,TAG
-          script: |
-            cd investigator
-            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
-            export TAG
-            docker compose -f compose.staging.yml --env-file .env.staging pull
-            docker compose -f compose.staging.yml --env-file .env.staging up -d --wait
+          service: ${{ vars.GCP_NAME_PREFIX }}-web
+          region: ${{ vars.GCP_REGION }}
+          image: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.GCP_NAME_PREFIX }}-images/investigator-web:${{ steps.tag.outputs.tag }}

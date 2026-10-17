@@ -1,5 +1,5 @@
 # Same-origin topology: the web app and the API share one host, so session cookies are
-# first-party and no CORS is involved. The API is addressed as `api` (the compose service).
+# first-party and no CORS is involved. Rendered at start from API_UPSTREAM and DNS_RESOLVER.
 server {
   listen 8080;
   root /usr/share/nginx/html;
@@ -12,11 +12,16 @@ server {
   location = /healthz { access_log off; return 200 "ok\n"; }
 
   # /api/<path> reaches the backend as /<path>. Streams (chat answers, run events) must not
-  # be buffered, or they arrive all at once at the end.
+  # be buffered, or they arrive all at once at the end. The upstream is named in a variable so
+  # it is looked up again when its address changes (Cloud Run addresses do).
   location /api/ {
-    proxy_pass http://api:8010/;
+    resolver ${DNS_RESOLVER} valid=30s;
+    set $upstream ${API_UPSTREAM};
+    rewrite ^/api/(.*)$ /$1 break;
+    proxy_pass $upstream;
     proxy_http_version 1.1;
-    proxy_set_header Host $host;
+    proxy_ssl_server_name on;
+    proxy_set_header Host $proxy_host;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
     proxy_buffering off;
