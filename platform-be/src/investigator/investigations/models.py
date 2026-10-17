@@ -64,6 +64,8 @@ RESULT_FIELDS = {
 class Investigation(BaseModel):
     id: UUID
     question: str
+    # Short title given when it was started; None for older records.
+    name: str | None = None
     status: InvestigationRunStatus
     # Who is looking after it (a name, set by a person; not a login).
     owner: str | None = None

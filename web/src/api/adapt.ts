@@ -129,7 +129,7 @@ export function titleOf(question: string): string {
 export function toInvestigation(d: InvestigationDto): InvestigationBundle['investigation'] {
   return {
     id: d.id,
-    title: titleOf(d.question),
+    title: d.name?.trim() || titleOf(d.question),
     problemStatement: d.question,
     status: d.status,
     owner: d.owner ?? undefined,

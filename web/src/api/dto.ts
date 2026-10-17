@@ -153,6 +153,8 @@ export interface PendingDto {
 }
 
 export interface InvestigationDto {
+  /** Short title given when it was started; absent on older records. */
+  name?: string | null
   owner: string | null
   /** A shared demo investigation: readable by every visitor, writable by none. */
   sample?: boolean
@@ -191,6 +193,7 @@ export interface InvestigationDto {
 
 export interface CreateInvestigationDto {
   question: string
+  name?: string
   customer_id?: string
   project_id?: string
   ticket_ids?: string[]

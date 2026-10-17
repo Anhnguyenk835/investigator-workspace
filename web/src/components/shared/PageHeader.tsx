@@ -46,7 +46,7 @@ export function PageHeader({
         <h1 className="min-w-0 text-title text-ink">{title}</h1>
         {actions ? <div className="flex max-w-full flex-wrap items-center gap-2 sm:shrink-0">{actions}</div> : null}
       </div>
-      {description ? <div className="-mt-2 max-w-prose text-body text-ink-muted">{description}</div> : null}
+      {description ? <div className="-mt-2 text-body text-ink-muted">{description}</div> : null}
       {meta}
     </header>
   )

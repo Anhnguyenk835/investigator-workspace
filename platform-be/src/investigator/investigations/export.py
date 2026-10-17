@@ -11,9 +11,11 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field
 from datetime import datetime
 
+from investigator.agents.investigation.schemas import Commitment, Finding, TimelineEvent
 from investigator.connectors import EvidenceRecord
 from investigator.directory import Directory
 from investigator.investigations.annotations import Annotation
+from investigator.investigations.export_assets import logo_uri
 from investigator.investigations.models import Investigation
 
 DISCLAIMER = (
@@ -23,11 +25,70 @@ DISCLAIMER = (
 
 
 @dataclass
+class TimelineItem:
+    when: str
+    kind: str  # event type key, e.g. "escalation"
+    sources: list[str]  # source of each cited record, in citation order
+    actor: str
+    title: str
+    summary: str
+    cites: str  # "[1][2]"
+    support: str  # "supported" | "partial" | "unsupported" | "unchecked"
+
+
+@dataclass
+class CommitmentItem:
+    statement: str
+    status: str  # confirmed | fulfilled | at_risk | overdue | unverified
+    inferred: bool
+    support: str
+    committed_by: str
+    owner: str
+    promised: str
+    due: str
+    sources: list[str]
+    cites: str
+    fulfilled_cites: str
+    reviews: list[str]
+
+
+@dataclass
+class QuoteItem:
+    source: str
+    verdict: str  # supported | partial | unsupported
+    quote: str
+    cite: str
+
+
+@dataclass
+class FindingItem:
+    title: str
+    claim: str
+    explanation: str
+    status: str  # verified | needs_verification | conflicting | unknown
+    inference: bool
+    support: str
+    quotes: list[QuoteItem]
+    sources: list[str]
+    cites: str
+    contradicting_sources: list[str]
+    contradicting_cites: str
+    review_flag: str
+    reviewer_note: str
+    reviews: list[str]
+
+
+@dataclass
 class Block:
-    kind: str  # "p", "ul", "quote", "table"
+    kind: str  # "p", "ul", "quote", "table", "timeline", "commitments", "findings"
     text: str = ""
     items: list[str] = field(default_factory=list)
-    rows: list[list[str]] = field(default_factory=list)  # first row is the header
+    rows: list[list[str]] = field(
+        default_factory=list
+    )  # tables: first row is the header
+    events: list[TimelineItem] = field(default_factory=list)  # timelines
+    commitments: list[CommitmentItem] = field(default_factory=list)
+    findings: list[FindingItem] = field(default_factory=list)
 
 
 @dataclass
@@ -68,6 +129,33 @@ class _Notes:
 
 def _when(value: datetime | None) -> str:
     return value.strftime("%Y-%m-%d %H:%M UTC") if value else "undated"
+
+
+EVENT_LABEL = {
+    "customer_request": "Customer request",
+    "internal_discussion": "Internal discussion",
+    "commitment": "Promise or commitment",
+    "assignment": "Assignment",
+    "status_change": "Status change",
+    "document_update": "Document update",
+    "blocker": "Blocker",
+    "deadline_change": "Deadline change",
+    "delivery": "Delivery",
+    "escalation": "Escalation",
+    "other": "Other",
+}
+
+
+def _stamp(value: datetime | None) -> str:
+    """Like the app: "Sep 12, 2026, 4:50 PM UTC"."""
+    if not value:
+        return "No date"
+    hour = value.strftime("%I").lstrip("0") or "12"
+    return f"{value:%b} {value.day}, {value.year}, {hour}:{value:%M %p} UTC"
+
+
+def _day(value: datetime | None) -> str:
+    return f"{value:%b} {value.day}, {value.year}" if value else ""
 
 
 def _side(r: EvidenceRecord) -> str:
@@ -122,7 +210,6 @@ def build_report(
             ),
         ),
         ("Owner", inv.owner or "not assigned"),
-        ("Run", str(inv.run_no)),
         ("Created", _when(inv.created_at)),
         ("Last updated", _when(inv.updated_at)),
     ]
@@ -157,76 +244,98 @@ def build_report(
         )
     )
 
-    finding_blocks: list[Block] = []
-    for f in inv.findings:
-        support = {
-            "supported": "backed by its records",
-            "partial": "only partly backed",
-            "unsupported": "not backed by its records",
-            "unchecked": "not checked",
-        }[f.support_status]
-        finding_blocks.append(
-            Block(
-                "p",
-                f"{f.claim}{notes.cite(f.supporting_evidence_ids)}\n"
-                f"Status: {f.status.replace('_', ' ')}. Basis: {f.reasoning_type}. Evidence: {support}.",
-            )
-        )
-        quotes = [
-            f'"{c.quote}"{notes.cite([c.evidence_id])}' for c in f.support if c.quote
-        ]
-        if quotes:
-            finding_blocks.append(Block("ul", items=quotes))
-        if f.contradicting_evidence_ids:
-            finding_blocks.append(
-                Block(
-                    "p",
-                    "Contradicting evidence:"
-                    + notes.cite(f.contradicting_evidence_ids),
+    def finding_item(f: Finding) -> FindingItem:
+        def srcs(ids: list[str]) -> list[str]:
+            return [notes.by_id[i].source for i in ids if i in notes.by_id]
+
+        return FindingItem(
+            f.title,
+            f.claim,
+            f.explanation,
+            f.status,
+            f.reasoning_type == "inference",
+            f.support_status,
+            [
+                QuoteItem(
+                    srcs([c.evidence_id])[0] if c.evidence_id in notes.by_id else "",
+                    c.verdict,
+                    c.quote or "",
+                    notes.cite([c.evidence_id]).strip(),
                 )
-            )
-        if reviews(f.id):
-            finding_blocks.append(Block("ul", items=reviews(f.id)))
+                for c in f.support
+            ],
+            srcs(f.supporting_evidence_ids),
+            notes.cite(f.supporting_evidence_ids).strip(),
+            srcs(f.contradicting_evidence_ids),
+            notes.cite(f.contradicting_evidence_ids).strip(),
+            f.review_flag or "",
+            f.reviewer_note or "",
+            reviews(f.id),
+        )
+
     sections.append(
         Section(
             "Findings",
-            finding_blocks
-            or [Block("p", "No finding is supported by the evidence found.")],
+            [Block("findings", findings=[finding_item(f) for f in inv.findings])]
+            if inv.findings
+            else [Block("p", "No finding is supported by the evidence found.")],
         )
     )
+
+    def timeline_item(ev: TimelineEvent) -> TimelineItem:
+        recs = [notes.by_id[i] for i in ev.evidence_ids if i in notes.by_id]
+        when = _stamp(ev.occurred_at)
+        if ev.timestamp_precision != "exact":
+            when += " (" + ev.timestamp_precision.replace("_", " ") + ")"
+        return TimelineItem(
+            when,
+            ev.event_type,
+            [r.source for r in recs],
+            ev.actor or "",
+            ev.title,
+            ev.summary,
+            notes.cite(ev.evidence_ids).strip(),
+            ev.support_status,
+        )
 
     sections.append(
         Section(
             "Timeline",
-            [
-                Block(
-                    "ul",
-                    items=[
-                        f"{_when(t.occurred_at)}{'' if t.timestamp_precision == 'exact' else ' (' + t.timestamp_precision.replace('_', ' ') + ')'} "
-                        f"- {t.title}: {t.summary}{notes.cite(t.evidence_ids)}"
-                        for t in inv.timeline
-                    ],
-                )
-            ]
+            [Block("timeline", events=[timeline_item(t) for t in inv.timeline])]
             if inv.timeline
             else [Block("p", "No dated events were found.")],
         )
     )
 
-    commit_blocks = []
-    for c in inv.commitments:
-        commit_blocks.append(
-            Block(
-                "p",
-                f"{c.description}{notes.cite(c.evidence_ids)}\nStatus: {c.status.replace('_', ' ')} "
-                f"({c.basis}). Committed by: {c.committed_by or 'not stated'}. Owner: {c.owner or 'not confirmed'}. "
-                f"Due: {c.due_date or 'not stated'}.",
-            )
+    def commitment_item(c: Commitment) -> CommitmentItem:
+        recs = [notes.by_id[i] for i in c.evidence_ids if i in notes.by_id]
+        return CommitmentItem(
+            c.description,
+            c.status,
+            c.basis == "inferred",
+            c.support_status,
+            c.committed_by or "",
+            c.owner or "",
+            _day(c.promised_at),
+            c.due_date.strftime("%b %-d, %Y") if c.due_date else "",
+            [r.source for r in recs],
+            notes.cite(c.evidence_ids).strip(),
+            notes.cite(c.fulfilled_by_evidence_ids).strip(),
+            reviews(c.id),
         )
-        if reviews(c.id):
-            commit_blocks.append(Block("ul", items=reviews(c.id)))
+
     sections.append(
-        Section("Commitments", commit_blocks or [Block("p", "None found.")])
+        Section(
+            "Commitments",
+            [
+                Block(
+                    "commitments",
+                    commitments=[commitment_item(c) for c in inv.commitments],
+                )
+            ]
+            if inv.commitments
+            else [Block("p", "None found.")],
+        )
     )
 
     if inv.blockers:
@@ -355,7 +464,7 @@ def build_report(
                 ]
             )
         sections.append(Section("Evidence", [Block("table", rows=rows)]))
-    return Report(_title(inv.question), meta, sections)
+    return Report(inv.name or _title(inv.question), meta, sections)
 
 
 def to_markdown(report: Report) -> str:
@@ -373,6 +482,46 @@ def to_markdown(report: Report) -> str:
                 out += ["> " + line for line in b.text.splitlines()] + [""]
             elif b.kind == "ul":
                 out += [f"- {i}" for i in b.items] + [""]
+            elif b.kind == "timeline":
+                out += [
+                    f"- {t.when} - {t.title}: {t.summary}"
+                    + (f" {t.cites}" if t.cites else "")
+                    for t in b.events
+                ] + [""]
+            elif b.kind == "findings":
+                for f in b.findings:
+                    out += [
+                        f"- **{f.title}.** {f.claim}{' ' + f.cites if f.cites else ''}",
+                        (
+                            f"  Status: {f.status.replace('_', ' ')}. "
+                            f"Basis: {'inference' if f.inference else 'direct'}."
+                        ),
+                    ]
+                    out += [
+                        f'  - "{q.quote}" {q.cite}'.rstrip()
+                        for q in f.quotes
+                        if q.quote
+                    ]
+                    if f.contradicting_cites:
+                        out.append(
+                            f"  - Contradicting evidence: {f.contradicting_cites}"
+                        )
+                    out += [f"  - {r}" for r in f.reviews]
+                out.append("")
+            elif b.kind == "commitments":
+                for c in b.commitments:
+                    out += [
+                        f"- {c.statement}{' ' + c.cites if c.cites else ''}",
+                        (
+                            f"  Status: {c.status.replace('_', ' ')}"
+                            f"{' (inferred)' if c.inferred else ''}. "
+                            f"Committed by: {c.committed_by or 'not stated'}. "
+                            f"Responsible: {c.owner or 'not confirmed'}. "
+                            f"Due: {c.due or 'not stated'}."
+                        ),
+                    ]
+                    out += [f"  - {r}" for r in c.reviews]
+                out.append("")
             elif b.kind == "table" and b.rows:
                 head, *body = b.rows
                 out += [
@@ -391,8 +540,226 @@ h1{font-size:1.6rem;margin-bottom:.4rem} h2{font-size:1.1rem;margin:1.6rem 0 .4r
 dl{display:grid;grid-template-columns:11rem 1fr;gap:.2rem 1rem;font-size:.9rem} dt{color:#5f6b7c} dd{margin:0}
 table{border-collapse:collapse;width:100%;font-size:.85rem} th,td{border:1px solid #d3d8de;padding:.35rem .5rem;text-align:left;vertical-align:top}
 th{background:#f6f7f9} blockquote{border-left:3px solid #48aff0;margin:.5rem 0;padding:.25rem .8rem;background:#f6f7f9;white-space:pre-wrap}
+.timeline{list-style:none;margin:.8rem 0;padding:0}
+.tl{position:relative;padding:0 0 1.3rem 3rem;break-inside:avoid}
+.tl:before{content:"";position:absolute;left:1rem;top:2.2rem;bottom:0;width:1px;background:#e1e6ec}
+.tl:last-child:before{display:none}
+.tl-icon{position:absolute;left:0;top:0;width:2rem;height:2rem;border:1px solid #e1e6ec;background:#fff;color:#5f6b7c;display:flex;align-items:center;justify-content:center}
+.tl.blocker .tl-icon{border-color:#c23030;color:#c23030} .tl.deadline .tl-icon{border-color:#d9822b;color:#d9822b}
+.tl-meta{display:flex;flex-wrap:wrap;gap:.2rem .7rem;font-size:.85rem;color:#5f6b7c;align-items:center;min-height:2rem}
+.tl-meta time{color:#1c2127;font-weight:600}
+.tl-type{border:1px solid #e1e6ec;background:#eef1f5;padding:.1rem .4rem;font-size:.68rem;text-transform:uppercase;letter-spacing:.03em;color:#3d4b5c}
+.tl-flag{border:1px solid;padding:.1rem .4rem;font-size:.68rem;text-transform:uppercase;letter-spacing:.03em}
+.tl-flag.bad{color:#b3322f;background:#fdeeee;border-color:#f3c9c8} .tl-flag.warn{color:#9a5b12;background:#fdf3e4;border-color:#f0d9b5}
+.tl-flag.info{color:#1f6fa8;background:#eaf5fc;border-color:#c5e1f3} .tl-flag.ok{color:#2b7a4b;background:#eaf6ee;border-color:#c6e4d1} .tl-flag.mute{color:#5f6b7c;background:#eef1f5;border-color:#e1e6ec}
+.commitments{display:flex;flex-direction:column;gap:.7rem;margin:.8rem 0}
+.cm{border:1px solid #e1e6ec;padding:.8rem 1rem;break-inside:avoid}
+.cm-head{display:flex;justify-content:space-between;gap:1rem;align-items:flex-start} .cm-head h3{font-size:1rem;margin:0;font-weight:600}
+.cm-flags{display:flex;flex-wrap:wrap;gap:.35rem;justify-content:flex-end}
+.cm dl{display:grid;grid-template-columns:repeat(4,1fr);gap:.6rem;margin:.7rem 0 0;font-size:.85rem}
+.cm dt{font-size:.68rem;text-transform:uppercase;letter-spacing:.03em;color:#5f6b7c} .cm dd{margin:.1rem 0 0;color:#1c2127} .cm dd .none{color:#5f6b7c}
+.cm-ev{display:flex;gap:.4rem;align-items:center;margin:.6rem 0 0;font-size:.78rem;color:#5f6b7c} .cm-ev b{font-size:.68rem;text-transform:uppercase;letter-spacing:.03em;font-weight:500;min-width:5.5rem}
+.cm-notes{margin:.6rem 0 0;padding-left:1.1rem;font-size:.82rem;color:#5f6b7c}
+.fd-claim{margin:.5rem 0 0;font-size:.92rem;color:#1c2127} .fd-expl{margin:.25rem 0 0;font-size:.85rem;color:#5f6b7c}
+.fd-quotes{list-style:none;margin:.7rem 0 0;padding:0;display:flex;flex-direction:column;gap:.5rem;font-size:.85rem}
+.fd-quotes li{display:flex;gap:.5rem;align-items:flex-start} .fd-quotes .logo{margin-top:.1rem}
+.fd-quotes blockquote{margin:.15rem 0 0;padding:0 0 0 .6rem;border-left:2px solid #48aff0;background:none;color:#1c2127}
+.vd{font-size:.66rem;text-transform:uppercase;letter-spacing:.03em} .vd.ok{color:#2b7a4b} .vd.warnt{color:#9a5b12} .vd.badt{color:#b3322f}
+.cm-cite{font-size:.75rem;color:#5f6b7c}
+.fd-note{margin:.7rem 0 0;padding:.5rem .75rem;border-left:2px solid #48aff0;background:#f4f6f9;font-size:.85rem}
+.fd-note.warn{border-left-color:#d9822b} .fd-note b{display:block;font-size:.66rem;text-transform:uppercase;letter-spacing:.03em;font-weight:500;color:#5f6b7c}
+.logo{width:1rem;height:1rem;vertical-align:middle}
+.tl h3{font-size:1rem;margin:.1rem 0 0;font-weight:600} .tl p{margin:.2rem 0 0;font-size:.88rem;color:#5f6b7c}
+.tl .tl-cite{display:flex;gap:.35rem;align-items:center;font-size:.78rem}
 .note{border:1px solid #d9822b;background:#fff7ee;padding:.6rem .8rem} @media print{body{margin:0}}
 """
+
+
+_ICONS = {
+    "customer_request": "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0",
+    "internal_discussion": "M5 4h14v12l-4 4H5zM15 20v-4h4M8 9h8M8 13h5",
+    "commitment": "M5 12l5 5L20 7",
+    "assignment": "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0",
+    "status_change": "M4 20h4L19 9l-4-4L4 16v4zM13 7l4 4",
+    "document_update": "M6 3h9l4 4v14H6zM14 3v5h5",
+    "blocker": "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM5.6 5.6l12.8 12.8",
+    "deadline_change": "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 2",
+    "delivery": "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM8 12l3 3 5-6",
+    "escalation": "M12 3l10 18H2L12 3zM12 10v5M12 18v.01",
+    "other": "M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z",
+}
+_SUPPORT = {
+    "partial": ("Only partly backed", "warn"),
+    "unsupported": ("Not backed by its records", "bad"),
+}
+
+
+def _logo(source: str) -> str:
+    uri = logo_uri(source)
+    if not uri:
+        return ""
+    return f'<img class="logo" src="{uri}" alt="" width="16" height="16">'
+
+
+def _timeline_html(events: list[TimelineItem]) -> str:
+    e = html.escape
+    items = []
+    for t in events:
+        tone = (
+            " blocker"
+            if t.kind == "blocker"
+            else " deadline"
+            if t.kind == "deadline_change"
+            else ""
+        )
+        first = t.sources[0] if t.sources else ""
+        label = EVENT_LABEL.get(t.kind, "Other")
+        who = f"<span>{e(first.capitalize())}</span>" if first else ""
+        if t.actor:
+            who += f"<span>{e(t.actor)}</span>"
+        flag = ""
+        if t.support in _SUPPORT:
+            text, cls = _SUPPORT[t.support]
+            flag = f'<span class="tl-flag {cls}">{e(text)}</span>'
+        icon = _ICONS.get(t.kind, _ICONS["other"])
+        marks = "".join(_logo(s) for s in dict.fromkeys(t.sources))
+        items.append(
+            f'<li class="tl{tone}"><span class="tl-icon"><svg viewBox="0 0 24 24" width="16" height="16" '
+            f'fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">'
+            f'<path d="{icon}"/></svg></span>'
+            f'<div class="tl-meta"><time>{e(t.when)}</time><span class="tl-type">{e(label)}</span>'
+            f"{_logo(first)}{who}{flag}</div>"
+            f"<h3>{e(t.title)}</h3><p>{e(t.summary)}</p>"
+            + (
+                f'<p class="tl-cite">{marks}<span>{e(t.cites)}</span></p>'
+                if t.cites
+                else ""
+            )
+            + "</li>"
+        )
+    return '<ol class="timeline">' + "".join(items) + "</ol>"
+
+
+_STATUS = {
+    "confirmed": ("Confirmed", "info"),
+    "fulfilled": ("Fulfilled", "ok"),
+    "at_risk": ("At risk", "warn"),
+    "overdue": ("Overdue", "bad"),
+    "unverified": ("Unverified", "mute"),
+}
+
+
+def _commitments_html(items: list[CommitmentItem]) -> str:
+    e = html.escape
+
+    def meta(label: str, value: str, missing: str) -> str:
+        shown = e(value) if value else f'<span class="none">{missing}</span>'
+        return f"<div><dt>{label}</dt><dd>{shown}</dd></div>"
+
+    cards = []
+    for c in items:
+        label, tone = _STATUS.get(c.status, ("Unverified", "mute"))
+        flags = ""
+        if c.inferred:
+            flags += '<span class="tl-flag warn">Inferred</span>'
+        if c.support in _SUPPORT:
+            text, cls = _SUPPORT[c.support]
+            flags += f'<span class="tl-flag {cls}">{e(text)}</span>'
+        flags += f'<span class="tl-flag {tone}">{label}</span>'
+        marks = "".join(_logo(s) for s in dict.fromkeys(c.sources))
+        evidence = (
+            f'<p class="cm-ev"><b>Evidence</b>{marks}<span>{e(c.cites)}</span></p>'
+            if c.cites
+            else ""
+        )
+        if c.fulfilled_cites:
+            evidence += f'<p class="cm-ev"><b>Fulfilled by</b><span>{e(c.fulfilled_cites)}</span></p>'
+        notes = "".join(f"<li>{e(r)}</li>" for r in c.reviews)
+        cards.append(
+            '<article class="cm"><div class="cm-head">'
+            f'<h3>{e(c.statement)}</h3><div class="cm-flags">{flags}</div></div>'
+            "<dl>"
+            + meta("Committed by", c.committed_by, "Not stated")
+            + meta("Responsible", c.owner, "Owner not confirmed")
+            + meta("Promised", c.promised, "Not stated")
+            + meta("Due", c.due, "Not stated")
+            + "</dl>"
+            + evidence
+            + (f'<ul class="cm-notes">{notes}</ul>' if notes else "")
+            + "</article>"
+        )
+    return '<div class="commitments">' + "".join(cards) + "</div>"
+
+
+_FINDING = {
+    "verified": ("Verified", "ok"),
+    "needs_verification": ("Needs verification", "warn"),
+    "conflicting": ("Conflicting evidence", "bad"),
+    "unknown": ("Unknown", "mute"),
+}
+_VERDICT = {
+    "supported": ("Says it", "ok"),
+    "partial": ("Says part of it", "warnt"),
+    "unsupported": ("Does not say it", "badt"),
+}
+
+
+def _findings_html(items: list[FindingItem]) -> str:
+    e = html.escape
+    cards = []
+    for f in items:
+        label, tone = _FINDING.get(f.status, ("Unknown", "mute"))
+        flags = f'<span class="tl-flag mute">{"Inference" if f.inference else "Direct evidence"}</span>'
+        if f.support in _SUPPORT:
+            text, cls = _SUPPORT[f.support]
+            flags += f'<span class="tl-flag {cls}">{e(text)}</span>'
+        elif f.support == "supported":
+            flags += '<span class="tl-flag ok">Backed by its records</span>'
+        flags += f'<span class="tl-flag {tone}">{label}</span>'
+        quotes = ""
+        if f.quotes:
+            rows = []
+            for q in f.quotes:
+                vt, vc = _VERDICT.get(q.verdict, ("", "mute"))
+                rows.append(
+                    f'<li>{_logo(q.source)}<div><span class="vd {vc}">{vt}</span>'
+                    + (f"<blockquote>{e(q.quote)}</blockquote>" if q.quote else "")
+                    + f'<span class="cm-cite">{e(q.cite)}</span></div></li>'
+                )
+            quotes = '<ul class="fd-quotes">' + "".join(rows) + "</ul>"
+        marks = "".join(_logo(s) for s in dict.fromkeys(f.sources))
+        evidence = (
+            f'<p class="cm-ev"><b>Supporting</b>{marks}<span>{e(f.cites)}</span></p>'
+            if f.cites
+            else ""
+        )
+        if f.contradicting_cites:
+            cm = "".join(_logo(s) for s in dict.fromkeys(f.contradicting_sources))
+            evidence += f'<p class="cm-ev"><b>Contradicting</b>{cm}<span>{e(f.contradicting_cites)}</span></p>'
+        flag = (
+            f'<p class="fd-note warn"><b>Check before relying on this</b>{e(f.review_flag)}</p>'
+            if f.review_flag
+            else ""
+        )
+        note = (
+            f'<p class="fd-note"><b>Reviewer note</b>{e(f.reviewer_note)}</p>'
+            if f.reviewer_note
+            else ""
+        )
+        reviews = "".join(f"<li>{e(r)}</li>" for r in f.reviews)
+        cards.append(
+            '<article class="cm"><div class="cm-head">'
+            f'<h3>{e(f.title)}</h3><div class="cm-flags">{flags}</div></div>'
+            f'<p class="fd-claim">{e(f.claim)}</p>'
+            + (f'<p class="fd-expl">{e(f.explanation)}</p>' if f.explanation else "")
+            + quotes
+            + evidence
+            + flag
+            + note
+            + (f'<ul class="cm-notes">{reviews}</ul>' if reviews else "")
+            + "</article>"
+        )
+    return '<div class="commitments">' + "".join(cards) + "</div>"
 
 
 def to_html(report: Report) -> str:
@@ -415,6 +782,12 @@ def to_html(report: Report) -> str:
                 parts.append(
                     "<ul>" + "".join(f"<li>{e(i)}</li>" for i in b.items) + "</ul>"
                 )
+            elif b.kind == "timeline":
+                parts.append(_timeline_html(b.events))
+            elif b.kind == "findings":
+                parts.append(_findings_html(b.findings))
+            elif b.kind == "commitments":
+                parts.append(_commitments_html(b.commitments))
             elif b.kind == "table" and b.rows:
                 head, *body = b.rows
 
