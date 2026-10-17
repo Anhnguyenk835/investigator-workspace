@@ -178,7 +178,9 @@ def test_the_real_app_wires_every_store_it_exposes(pool: Any) -> None:
     def forget_test_visitors() -> None:
         # Demo sessions are limited per address; earlier runs of this test must not use it up.
         with psycopg.connect(get_settings().database_url, autocommit=True) as conn:
-            conn.execute("DELETE FROM users WHERE created_ip = 'testclient'")
+            # A fresh database (CI) has no users table until the app has started once.
+            if conn.execute("SELECT to_regclass('users')").fetchone()[0] is not None:  # type: ignore[index]
+                conn.execute("DELETE FROM users WHERE created_ip = 'testclient'")
 
     forget_test_visitors()
     with TestClient(create_app()) as client:
