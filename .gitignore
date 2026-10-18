@@ -1,0 +1,12 @@
+
+video/.env
+video/node_modules
+video/.auth
+video/raw/
+video/raw-*.log
+video/out/scenes/
+video/out/caps/
+video/out/chk/
+video/out/video-only.mp4
+video/audio/*.mp3
+video/audio/*.align.json
