@@ -3,48 +3,56 @@
   "story": "meridian-kyc",
   "customer_id": "cus_demo_meridian",
   "project_id": "pro_demo_meridian-kyc",
+  "name": "Meridian Growth Partners: KYC backlog before Fund II final close",
   "question": "What happened with the Meridian Fund II KYC backlog, who promised what, and what is still open?"
  },
  {
   "story": "crestline-capital-call",
   "customer_id": "cus_demo_crestline",
   "project_id": "pro_demo_crestline-capital-call",
+  "name": "Crestline Real Estate Fund: Capital Call #4 wrong amounts",
   "question": "What went wrong with Crestline's Capital Call #4 notices, who promised what, and what is overdue?"
  },
  {
   "story": "blueridge-sso",
   "customer_id": "cus_demo_blueridge",
   "project_id": "pro_demo_blueridge-sso",
+  "name": "Blue Ridge Family Office: SSO go-live slipped past the sold date",
   "question": "Why is Blue Ridge's SSO late, who committed to which date, and what is the current status?"
  },
  {
   "story": "tidewater-side-letter",
   "customer_id": "cus_demo_tidewater",
   "project_id": "pro_demo_tidewater-side-letter",
+  "name": "Tidewater Capital: Side-letter terms shown wrongly in the portal",
   "question": "What happened with Tidewater's side-letter fee terms, who said what to the customer, and what is the current status?"
  },
  {
   "story": "lotus-esign-translation",
   "customer_id": "cus_demo_lotus",
   "project_id": "pro_demo_lotus-esign-translation",
+  "name": "Lotus Pacific Ventures: Translation errors and e-sign hotfix timing",
   "question": "What happened with Lotus Pacific's e-sign and translation problems, and what was promised?"
  },
  {
   "story": "summit-billing",
   "customer_id": "cus_demo_summit",
   "project_id": "pro_demo_summit-billing",
+  "name": "Summit Peak Partners: Invoice billed invited investors",
   "question": "What is the Summit Peak billing dispute, who promised what, and what remains overdue?"
  },
  {
   "story": "granite-sync",
   "customer_id": "cus_demo_granite",
   "project_id": "pro_demo_granite-sync",
+  "name": "Granite Bay Infrastructure: Silent sync failure to the fund administrator",
   "question": "What happened with Granite Bay's Northstar sync, did we breach the SLA, and what is promised?"
  },
  {
   "story": "silverleaf-onboarding",
   "customer_id": "cus_demo_silverleaf",
   "project_id": "pro_demo_silverleaf-onboarding",
+  "name": "Silverleaf Ventures: A smooth onboarding",
   "question": "How did the Silverleaf onboarding go and is anything open?"
  }
 ]

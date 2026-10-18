@@ -171,3 +171,7 @@ def test_the_demo_export_dates_every_record_inside_its_story_and_keeps_ids_uniqu
     index = DemoIndex(out.records)
     assert index.search("gmail", [], None, None, None)
     assert len(out.samples) == len(out.projects) >= 8
+    # Every sample has a short name of its own, so the list does not show the long question.
+    names = [name for *_, name in out.samples]
+    assert all(0 < len(n) <= 120 for n in names) and len(set(names)) == len(names)
+    assert all(n != q for (*_, q, n) in out.samples)

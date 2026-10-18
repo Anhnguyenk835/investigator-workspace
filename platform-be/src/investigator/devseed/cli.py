@@ -419,9 +419,10 @@ def cmd_export_demo(a: argparse.Namespace) -> int:
                             "story": sid,
                             "customer_id": cid,
                             "project_id": pid,
+                            "name": name,
                             "question": q,
                         }
-                        for sid, cid, pid, q in out.samples
+                        for sid, cid, pid, q, name in out.samples
                     ],
                     ensure_ascii=False,
                     indent=1,
@@ -470,7 +471,9 @@ def cmd_run_samples(a: argparse.Namespace) -> int:
                     ctx = CaseContext(
                         customer_id=x["customer_id"], project_id=x["project_id"]
                     )
-                    rec = await rt.store.create(x["question"], ctx, SAMPLE_ID)
+                    rec = await rt.store.create(
+                        x["question"], ctx, SAMPLE_ID, name=x.get("name")
+                    )
                     await run_investigation(
                         rt.graph,
                         rt.store,

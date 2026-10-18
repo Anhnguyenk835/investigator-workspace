@@ -43,8 +43,8 @@ class DemoBuild:
     projects: list[Project] = field(default_factory=list)
     people: list[Person] = field(default_factory=list)
     truth: list[dict[str, Any]] = field(default_factory=list)
-    # (story id, customer id, project id, question), for running the sample investigations.
-    samples: list[tuple[str, str, str, str]] = field(default_factory=list)
+    # (story id, customer id, project id, question, name), for running the sample investigations.
+    samples: list[tuple[str, str, str, str, str]] = field(default_factory=list)
 
 
 def _schedule(
@@ -298,7 +298,15 @@ def build(
                 jira_labels=s.labels, slack_channel_ids=channels,
             )
         )  # fmt: skip
-        out.samples.append((s.id, cust_ids[s.customer], pid, s.question))
+        out.samples.append(
+            (
+                s.id,
+                cust_ids[s.customer],
+                pid,
+                s.question,
+                f"{org.name}: {s.title}"[:120],
+            )
+        )
         out.truth.append({"id": s.id, "customer": s.customer, "title": s.title, "question": s.question,
                           "facts": [f.__dict__ for f in s.facts]})  # fmt: skip
     for key, p in world.people.items():
