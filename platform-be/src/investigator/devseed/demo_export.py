@@ -86,8 +86,48 @@ def _live_order(s: Story) -> list[Beat]:
     ]
 
 
+def _wiki_pages(
+    out: DemoBuild,
+    world: World,
+    groups: dict[str, list[dict[str, str]]],
+    first: int,
+    now: datetime,
+    rng: Random,
+) -> None:
+    """Extra Confluence pages (written by `confluence-plan`), dated over the last weeks and
+    authored by the internal team. Titles are unique, as Confluence requires."""
+    staff = sorted(k for k, p in world.people.items() if p.side == "internal")
+    if not staff:
+        return
+    seen = {r.title.lower() for r in out.records if r.source == "confluence"}
+    n = first
+    for group in sorted(groups):
+        for page in groups[group]:
+            title, k = page["title"].strip()[:250], 2
+            while title.lower() in seen:
+                title, k = f"{page['title'].strip()[:240]} ({k})", k + 1
+            seen.add(title.lower())
+            n += 1
+            p = world.p(rng.choice(staff))
+            rid = f"confluence:{9000 + n}"
+            out.records.append(
+                EvidenceRecord(
+                    id=rid, source="confluence", title=title, author=p.name,
+                    occurred_at=now - timedelta(hours=rng.uniform(3, 24 * 21)), timestamp_precision="exact",
+                    excerpt=f"Author: {p.name}, {p.title}\n\n{page['markdown'].strip()}",
+                    url=f"https://demo.atlassian.example/wiki/spaces/{SPACE}/pages/{9000 + n}",
+                    thread_id=rid, meta={"space": SPACE},
+                )
+            )  # fmt: skip
+
+
 def build(
-    stories: list[Story], world: World, plan_now: datetime, now: datetime, seed: int = 7
+    stories: list[Story],
+    world: World,
+    plan_now: datetime,
+    now: datetime,
+    seed: int = 7,
+    extra_pages: dict[str, list[dict[str, str]]] | None = None,
 ) -> DemoBuild:
     rng = Random(seed)
     when = _schedule(stories, plan_now, now, rng)
@@ -231,6 +271,7 @@ def build(
                         thread_id=f"confluence:{9000 + pages}", meta={"space": b.space or SPACE},
                     )
                 )  # fmt: skip
+    _wiki_pages(out, world, extra_pages or {}, pages, now, rng)
     out.records.sort(key=lambda r: r.occurred_at or now)
 
     # Directory: who the customers, projects and people are. The demo's is shared and read-only.

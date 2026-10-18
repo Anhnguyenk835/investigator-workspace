@@ -139,7 +139,9 @@ Rules:
 - Every title starts with the customer or the topic so a title search finds it."""
 
 
-def _story_prompt(story: Story, w: World) -> str:
+def _story_prompt(
+    story: Story, w: World, story_kinds: list[tuple[str, str]] = STORY_KINDS
+) -> str:
     org = w.orgs[story.customer].name
     facts = "\n".join(
         f"- [{f.kind}] {f.statement}"
@@ -151,11 +153,11 @@ def _story_prompt(story: Story, w: World) -> str:
         for b in story.beats
         if b.text
     )[:6000]
-    kinds = "\n".join(f"{i + 1}. {k}: {d}" for i, (k, d) in enumerate(STORY_KINDS))
+    kinds = "\n".join(f"{i + 1}. {k}: {d}" for i, (k, d) in enumerate(story_kinds))
     return (
         f"Customer: {org}\nCase: {story.title}\nSummary: {story.summary}\n\nGround truth:\n{facts}\n\n"
         f"What was said in mail, chat and tickets (for continuity):\n{excerpts}\n\n"
-        f"Write {len(STORY_KINDS)} pages, in this order, each titled '{org} - <topic>: <kind>':\n{kinds}"
+        f"Write {len(story_kinds)} pages, in this order, each titled '{org} - <topic>: <kind>':\n{kinds}"
     )
 
 
@@ -186,7 +188,13 @@ async def _ask(llm: Llm, prompt: str, want: int) -> list[PageDraft]:
 
 
 async def write_pages(
-    llm: Llm, stories: list[Story], w: World, *, workers: int = 4
+    llm: Llm,
+    stories: list[Story],
+    w: World,
+    *,
+    workers: int = 4,
+    story_kinds: list[tuple[str, str]] = STORY_KINDS,
+    topics: list[tuple[str, str]] = GENERAL_TOPICS,
 ) -> dict[str, list[PageDraft]]:
     """Pages grouped under the customer they are about; '' holds the general ones."""
     gate = asyncio.Semaphore(workers)
@@ -194,12 +202,12 @@ async def write_pages(
 
     async def story(s: Story) -> None:
         async with gate:
-            pages = await _ask(llm, _story_prompt(s, w), len(STORY_KINDS))
+            pages = await _ask(llm, _story_prompt(s, w, story_kinds), len(story_kinds))
         org = w.orgs[s.customer].name
         if len(pages) == len(
-            STORY_KINDS
+            story_kinds
         ):  # the titles are ours, so a title search is reliable
-            for page, (kind, _) in zip(pages, STORY_KINDS, strict=True):
+            for page, (kind, _) in zip(pages, story_kinds, strict=True):
                 page.title = f"{org} - {s.title}: {kind}"
         out.setdefault(org, []).extend(pages)
 
@@ -208,7 +216,7 @@ async def write_pages(
             pages = await _ask(llm, _general_prompt(chunk), len(chunk))
         out.setdefault("", []).extend(pages)
 
-    chunks = [GENERAL_TOPICS[i : i + 3] for i in range(0, len(GENERAL_TOPICS), 3)]
+    chunks = [topics[i : i + 3] for i in range(0, len(topics), 3)]
     await asyncio.gather(
         *[story(s) for s in stories if s.facts], *[general(c) for c in chunks]
     )

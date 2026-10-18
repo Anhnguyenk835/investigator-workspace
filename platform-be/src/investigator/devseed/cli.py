@@ -373,7 +373,12 @@ def cmd_export_demo(a: argparse.Namespace) -> int:
 
     _run, seed, plan_now, world, stories = planmod.load(Path(a.plan))
     now = datetime.now(UTC)
-    out = build(stories, world, plan_now, now, seed)
+    extra = (
+        json.loads(Path(a.confluence).read_text())
+        if a.confluence and Path(a.confluence).exists()
+        else {}
+    )
+    out = build(stories, world, plan_now, now, seed, extra)
     by_source: dict[str, int] = {}
     for r in out.records:
         by_source[r.source] = by_source.get(r.source, 0) + 1
@@ -492,6 +497,56 @@ def cmd_run_samples(a: argparse.Namespace) -> int:
             return 1 if failed else 0
 
     return asyncio.run(go())
+
+
+# ---- confluence ---------------------------------------------------------------------
+
+CONFLUENCE_PLAN = "seed-confluence.json"
+
+
+def cmd_confluence_plan(a: argparse.Namespace) -> int:
+    from investigator.devseed.confluence_seed import write
+    from investigator.llm import get_llm_client
+
+    _run, _seed, _now, world, stories = planmod.load(Path(a.plan))
+    print("writing Confluence pages with the model…")
+    groups = asyncio.run(write(get_llm_client(), stories, world, workers=a.workers))
+    Path(a.out).write_text(
+        json.dumps(
+            {k: [p.model_dump() for p in v] for k, v in groups.items()},
+            ensure_ascii=False,
+            indent=1,
+        )
+    )
+    total = sum(len(v) for v in groups.values())
+    print(f"{total} pages for {len(groups)} groups saved to {a.out}")
+    return 0
+
+
+def cmd_confluence_post(a: argparse.Namespace) -> int:
+    from investigator.devseed.confluence_seed import ConfluenceWriter, unique_titles
+
+    pages = unique_titles(json.loads(Path(a.pages).read_text()))
+    secrets = {} if a.dry else _env(a.secrets)
+    w = ConfluenceWriter(
+        secrets.get("JIRA_BASE_URL", "https://example.invalid"),
+        secrets.get("JIRA_EMAIL", ""),
+        secrets.get("JIRA_API_TOKEN", ""),
+        dry=a.dry,
+    )
+    try:
+        w.ensure_space()
+        have = set() if a.dry else w.existing_titles()
+        todo = [(t, m) for t, m in pages if t.lower() not in have]
+        print(f"{len(pages)} pages planned, {len(pages) - len(todo)} already there")
+        for i, (title, md) in enumerate(todo, 1):
+            w.create(title, md)
+            if i % 10 == 0:
+                print(f"  {i}/{len(todo)}")
+        print(f"{'would create' if a.dry else 'created'} {w.created} pages")
+    finally:
+        w.close()
+    return 0
 
 
 # ---- notion -------------------------------------------------------------------------
@@ -662,8 +717,27 @@ def main(argv: list[str]) -> int:
     q = sub.add_parser("export-demo")
     q.add_argument("--plan", default="seed-plan.json")
     q.add_argument("--samples", default="seed-samples.json")
+    q.add_argument(
+        "--confluence",
+        default=CONFLUENCE_PLAN,
+        help="extra Confluence pages (from confluence-plan) to put in the demo; skipped if missing",
+    )
     q.add_argument("--dry", action="store_true")
     q.set_defaults(fn=cmd_export_demo)
+    q = sub.add_parser("confluence-plan")
+    q.add_argument("--plan", default="seed-plan.json")
+    q.add_argument("--out", default=CONFLUENCE_PLAN)
+    q.add_argument("--workers", type=int, default=4)
+    q.set_defaults(fn=cmd_confluence_plan)
+    q = sub.add_parser("confluence-post")
+    q.add_argument("--pages", default=CONFLUENCE_PLAN)
+    q.add_argument(
+        "--secrets",
+        default="/Users/tuananhnguyen/Documents/Project/investigator/.env",
+        help="a .env holding JIRA_BASE_URL, JIRA_EMAIL, JIRA_API_TOKEN",
+    )
+    q.add_argument("--dry", action="store_true")
+    q.set_defaults(fn=cmd_confluence_post)
     q = sub.add_parser("notion-plan")
     q.add_argument("--plan", default="seed-plan.json")
     q.add_argument("--out", default=NOTION_PLAN)
