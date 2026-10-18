@@ -9,6 +9,10 @@ ENV VITE_API_BASE_URL=/api
 RUN npm run build
 
 FROM nginxinc/nginx-unprivileged:1.27-alpine
+# The base image lags the Alpine security fixes (CVE-2026-31789 in OpenSSL); take them at build time.
+USER root
+RUN apk upgrade --no-cache libcrypto3 libssl3
+USER 101
 # Rendered into conf.d/default.conf at start; only these two variables are substituted.
 COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 ENV NGINX_ENVSUBST_FILTER='^(API_UPSTREAM|DNS_RESOLVER)$' API_UPSTREAM=http://api:8010 DNS_RESOLVER=127.0.0.11
