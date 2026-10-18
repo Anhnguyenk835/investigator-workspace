@@ -8,7 +8,7 @@ COPY . .
 ENV VITE_API_BASE_URL=/api
 RUN npm run build
 
-FROM nginxinc/nginx-unprivileged:1.27-alpine
+FROM nginxinc/nginx-unprivileged:1.31-alpine
 # The base image lags the Alpine security fixes (CVE-2026-31789 in OpenSSL); take them at build time.
 USER root
 RUN apk upgrade --no-cache libcrypto3 libssl3
