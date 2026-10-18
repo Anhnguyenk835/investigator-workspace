@@ -17,67 +17,91 @@ function idsIn(part: string): string[] | undefined {
   return ids.every((p) => /^E:\S+$/.test(p)) ? ids.map((p) => p.slice(2)) : undefined
 }
 
-/** One line of an answer: **bold** and citation chips. */
+/** One line of an answer: **bold**, *italic* and citation chips. */
 function Inline({ text, pending }: { text: string; pending: boolean }) {
   return (
     <>
-      {text.split(/(\*\*[^*]+\*\*)/).map((chunk, i) => {
+      {text.split(/(\*\*[^*]+\*\*|\*[^*\s][^*]*\*)/).map((chunk, i) => {
         const bold = /^\*\*([^*]+)\*\*$/.exec(chunk)
-        const body = bold?.[1] ?? chunk
+        const italic = bold ? null : /^\*([^*\s][^*]*)\*$/.exec(chunk)
+        const body = bold?.[1] ?? italic?.[1] ?? chunk
         const parts = body.split(MARKER).map((part, j) => {
           const ids = idsIn(part)
           return ids ? ids.map((id) => <EvidenceCitation key={`${j}-${id}`} id={id} pending={pending} />) : <span key={j}>{part}</span>
         })
-        return bold ? (
-          <strong key={i} className="font-medium">
-            {parts}
-          </strong>
-        ) : (
-          <span key={i}>{parts}</span>
-        )
+        if (bold)
+          return (
+            <strong key={i} className="font-medium">
+              {parts}
+            </strong>
+          )
+        if (italic) return <em key={i}>{parts}</em>
+        return <span key={i}>{parts}</span>
       })}
     </>
   )
 }
 
 const BULLET = /^\s*[*-]\s+/
+const NUMBERED = /^\s*\d+[.)]\s+/
+const HEADING = /^\s*#{1,6}\s+/
+
+type BlockKind = 'p' | 'ul' | 'ol' | 'h'
+
+function kindOf(line: string): BlockKind {
+  if (HEADING.test(line)) return 'h'
+  if (BULLET.test(line)) return 'ul'
+  if (NUMBERED.test(line)) return 'ol'
+  return 'p'
+}
 
 /**
- * An answer with the little formatting models use (bold, bullet lists) and each complete
- * `[E:id]` marker shown as a citation chip. An unfinished marker at the end of a stream is held back.
+ * An answer with the little formatting models use (headings, bold, italic, bullet and numbered
+ * lists) and each complete `[E:id]` marker shown as a citation chip. An unfinished marker at the
+ * end of a stream is held back.
  */
 export function CitedText({ text, streaming = false }: { text: string; streaming?: boolean }) {
   const visible = streaming ? text.replace(/\[E:[^\]]*$/, '') : text
-  const blocks: { bullet: boolean; lines: string[] }[] = []
+  const blocks: { kind: BlockKind; lines: string[] }[] = []
   for (const line of visible.split('\n')) {
     if (line.trim() === '') {
-      blocks.push({ bullet: false, lines: [] })
+      blocks.push({ kind: 'p', lines: [] })
       continue
     }
-    const bullet = BULLET.test(line)
+    const kind = kindOf(line)
     const last = blocks[blocks.length - 1]
-    if (last && last.lines.length > 0 && last.bullet === bullet) last.lines.push(line)
-    else blocks.push({ bullet, lines: [line] })
+    if (last && last.lines.length > 0 && last.kind === kind && kind !== 'h') last.lines.push(line)
+    else blocks.push({ kind, lines: [line] })
   }
   return (
     <div className="flex flex-col gap-2 break-words text-body text-ink">
       {blocks
         .filter((b) => b.lines.length > 0)
-        .map((b, i) =>
-          b.bullet ? (
-            <ul key={i} className="flex list-disc flex-col gap-1 pl-5">
-              {b.lines.map((l, j) => (
-                <li key={j}>
-                  <Inline text={l.replace(BULLET, '')} pending={streaming} />
-                </li>
-              ))}
-            </ul>
-          ) : (
+        .map((b, i) => {
+          if (b.kind === 'h')
+            return (
+              <p key={i} className="mt-1 font-medium text-ink">
+                <Inline text={b.lines[0]?.replace(HEADING, '') ?? ''} pending={streaming} />
+              </p>
+            )
+          if (b.kind === 'ul' || b.kind === 'ol') {
+            const Tag = b.kind
+            return (
+              <Tag key={i} className={cn('flex flex-col gap-1 pl-5', b.kind === 'ul' ? 'list-disc' : 'list-decimal')}>
+                {b.lines.map((l, j) => (
+                  <li key={j}>
+                    <Inline text={l.replace(b.kind === 'ul' ? BULLET : NUMBERED, '')} pending={streaming} />
+                  </li>
+                ))}
+              </Tag>
+            )
+          }
+          return (
             <p key={i} className="whitespace-pre-wrap">
               <Inline text={b.lines.join('\n')} pending={streaming} />
             </p>
-          ),
-        )}
+          )
+        })}
     </div>
   )
 }

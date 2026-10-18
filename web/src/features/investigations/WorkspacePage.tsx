@@ -265,8 +265,8 @@ export function WorkspacePage() {
       {agentRail ? null : (
         <button
           type="button"
-          aria-label="Open Investigator Agent"
-          title="Investigator Agent"
+          aria-label="Open Investigator Copilot"
+          title="Investigator Copilot"
           aria-expanded={wide ? agentOpen : agentDrawer}
           aria-controls="investigator-agent"
           data-tour="agent"
@@ -335,7 +335,7 @@ export function WorkspacePage() {
         </div>
       ) : null}
 
-      <Drawer open={agentDrawer && !wide} onClose={() => setAgentDrawer(false)} title="Investigator Agent" width="sm:max-w-[30.24rem]">
+      <Drawer open={agentDrawer && !wide} onClose={() => setAgentDrawer(false)} title="Investigator Copilot" width="sm:max-w-[30.24rem]">
         <div id="investigator-agent" className="-mx-5 -my-4 h-[calc(100dvh-5.5rem)]">
           <AgentPanel inv={inv} variant="drawer" />
         </div>

@@ -112,7 +112,7 @@ function Clarification({ inv, busy, onSubmit }: PanelProps) {
         )
       }}
     >
-      <p className="max-w-prose text-body text-ink">
+      <p className="text-body text-ink">
         {scoped.length > 0
           ? 'Say where to look before anything is read. Searching a whole account is slower, costs more, and reads more than this case needs. Choose the parts that matter, or search all of a source on purpose.'
           : 'The records found belong to more than one case. Pick the one you mean; the search then restarts for that case only.'}
