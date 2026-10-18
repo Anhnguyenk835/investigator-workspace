@@ -11,6 +11,10 @@ from investigator.guardrails.output.patterns import BLAME
 CITE = re.compile(r"\[E:([^\]\s,]+)\]")
 # A model often lists several ids in one bracket: [E:a, E:b].
 CITE_LIST = re.compile(r"\[(E:[^\]]+)\]")
+# The wrappers that mark text as data in the prompt. A model sometimes repeats them.
+WRAPPER = re.compile(
+    r"</?\s*(?:user-input|derived-notes|record|options)\b[^>]*>", re.IGNORECASE
+)
 NEGATION = re.compile(
     r"\b(cannot|can't|can not|not|no|never|neither|nor|without|unable|nothing|none|"
     r"doesn't|does not|isn't|is not|don't|do not)\b",
@@ -27,13 +31,13 @@ class Grounded:
 
 
 def _split_lists(text: str) -> str:
-    """`[E:a, E:b]` becomes `[E:a][E:b]`, so every id is checked on its own."""
+    """`[E:a, E:b]` and `[E:a, b]` become `[E:a][E:b]`, so every id is checked on its own."""
 
     def one(m: re.Match[str]) -> str:
         parts = [p.strip() for p in m.group(1).split(",") if p.strip()]
-        if len(parts) < 2 or not all(p.startswith("E:") for p in parts):
+        if len(parts) < 2 or any(" " in p for p in parts):
             return m.group(0)
-        return "".join(f"[{p}]" for p in parts)
+        return "".join(f"[{p if p.startswith('E:') else 'E:' + p}]" for p in parts)
 
     return CITE_LIST.sub(one, text)
 
@@ -63,6 +67,7 @@ def ground(answer: str, known: Collection[str]) -> Grounded:
     A marker the model invented must not reach a reader looking like evidence, so it is
     removed from the text rather than left in with a warning beside it.
     """
+    answer = WRAPPER.sub("", answer).strip()
     known_ids = set(known)
     cited: list[str] = []
     removed = 0

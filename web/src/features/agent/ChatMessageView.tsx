@@ -6,15 +6,15 @@ import { EvidenceCitation } from '@/features/evidence/EvidenceCitation'
 import { cn } from '@/lib/cn'
 import type { ChatMessage, ChatTool } from '@/types/investigator'
 
-/** `[E:a]`, or several ids in one bracket: `[E:a, E:b]`. */
+/** `[E:a]`, or several ids in one bracket: `[E:a, E:b]` or `[E:a, b]`. */
 const MARKER = /(\[E:[^\]]+\])/g
 
 /** The record ids a marker names, or undefined when the text is not a marker. */
 function idsIn(part: string): string[] | undefined {
   const m = /^\[(E:[^\]]+)\]$/.exec(part)
   if (!m?.[1]) return undefined
-  const ids = m[1].split(',').map((p) => p.trim())
-  return ids.every((p) => /^E:\S+$/.test(p)) ? ids.map((p) => p.slice(2)) : undefined
+  const ids = m[1].split(',').map((p) => p.trim().replace(/^E:/, ''))
+  return ids.every((p) => /^\S+$/.test(p)) ? ids : undefined
 }
 
 /** One line of an answer: **bold**, *italic* and citation chips. */

@@ -37,6 +37,20 @@ LOCAL = AccessContext(user_id="local", permitted_sources=frozenset({"email", "ch
 # ---- grounding ------------------------------------------------------------------------
 
 
+def test_a_list_of_ids_needs_the_prefix_only_once() -> None:
+    out = ground(
+        "Both [E:slack:C1:1.5, notion:abc] agree.", {"slack:C1:1.5", "notion:abc"}
+    )
+    assert out.citations == ["slack:C1:1.5", "notion:abc"]
+    assert "[E:slack:C1:1.5][E:notion:abc]" in out.text
+
+
+def test_prompt_wrapper_tags_the_model_repeats_are_removed() -> None:
+    out = ground("<user-input>\nList them\n</user-input>\nTwo channels [E:e1].", {"e1"})
+    assert "<user-input>" not in out.text and "</user-input>" not in out.text
+    assert out.text.endswith("Two channels [E:e1].") and out.citations == ["e1"]
+
+
 def test_real_citations_stay_invented_ones_are_removed_and_weak_answers_flagged() -> (
     None
 ):
