@@ -295,7 +295,7 @@ def build(
         out.projects.append(
             Project(
                 id=pid, name=f"{org.name} - {s.title}", customer_id=cust_ids[s.customer], aliases=[s.id],
-                jira_labels=s.labels, slack_channel_ids=channels,
+                jira_labels=s.labels, slack_channel_ids=channels, confluence_spaces=[SPACE],
             )
         )  # fmt: skip
         out.samples.append(
