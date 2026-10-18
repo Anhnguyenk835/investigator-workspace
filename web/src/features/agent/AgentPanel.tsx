@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { cn } from '@/lib/cn'
 import { Button, ConfirmDialog, Icon } from '@/components/ui'
 import { AgentOrb } from '@/features/agent/AgentOrb'
 import { AgentTurn, AssistantMessage, CitedText, ToolList, UserMessage } from '@/features/agent/ChatMessageView'
@@ -23,6 +24,7 @@ export function AgentPanel({ inv, variant, onCollapse }: { inv: Investigation; v
   const chat = useChat(inv.id, convs.selected, convs.create, convs.refresh)
   const [listOpen, setListOpen] = useState(false)
   const [text, setText] = useState('')
+  const empty = chat.phase === 'idle' && chat.messages.length === 0 && !chat.error
   // The conversation waiting for a yes before it is deleted.
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const scroller = useRef<HTMLDivElement>(null)
@@ -55,12 +57,12 @@ export function AgentPanel({ inv, variant, onCollapse }: { inv: Investigation; v
   }
 
   return (
-    <section aria-label="Investigator Agent" className="flex h-full min-h-0 flex-col bg-surface">
+    <section aria-label="Investigator Copilot" className="flex h-full min-h-0 flex-col bg-surface">
       <div className="relative">
         <header className="flex items-center gap-2 border-b border-line-subtle py-3 pl-4 pr-2">
           <AgentOrb animated={answering} busy={answering} className="size-8" />
           <div className="min-w-0 flex-1">
-            <h2 className="text-body font-medium text-ink">Investigator Agent</h2>
+            <h2 className="text-body font-medium text-ink">Investigator Copilot</h2>
             <p className="truncate text-caption text-ink-muted" title={openTitle}>
               {openTitle}
             </p>
@@ -114,10 +116,10 @@ export function AgentPanel({ inv, variant, onCollapse }: { inv: Investigation; v
           stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 48
         }}
       >
-        <div className="flex flex-col gap-3" aria-live="polite">
+        <div className={cn('flex flex-col gap-3', empty && 'min-h-full justify-center')} aria-live="polite">
 
-          {chat.phase === 'idle' && chat.messages.length === 0 && !chat.error ? (
-            <div className="flex flex-wrap gap-1.5">
+          {empty ? (
+            <div className="flex flex-wrap justify-center gap-1.5">
               {PROMPTS.map((p) => (
                 <button key={p} type="button" disabled={disabled} onClick={() => submit(p)} className="border border-line bg-surface px-2.5 py-1 text-caption text-ink hover:border-primary/60 disabled:opacity-40">
                   {p}
@@ -163,7 +165,7 @@ export function AgentPanel({ inv, variant, onCollapse }: { inv: Investigation; v
       >
         {reason ? <p className="mb-2 text-caption text-ink-muted">{reason}</p> : null}
         <label htmlFor={`agent-input-${variant}`} className="sr-only">
-          Ask the Investigator Agent
+          Ask the Investigator Copilot
         </label>
         <div className="relative flex flex-col rounded-[0.75rem] border border-line bg-surface pb-2 pl-4 pr-1 pt-2.5 shadow-sm focus-within:border-primary/60 focus-within:ring-2 focus-within:ring-primary/20">
           {/* Which investigation this conversation is about. It follows the page and cannot be removed. */}

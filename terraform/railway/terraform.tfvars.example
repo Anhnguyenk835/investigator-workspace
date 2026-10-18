@@ -1,0 +1,45 @@
+# Copy to terraform.tfvars (git-ignored) and fill in. The Railway token is NOT set here:
+#   export RAILWAY_TOKEN=...   (https://railway.com/account/tokens)
+
+# Leave empty for your personal workspace.
+workspace_id = ""
+region       = "asia-southeast1-eqsg3a"
+
+# Your domain. Leave empty to start on the up.railway.app address.
+domain = ""
+
+# GHCR images built by the Release workflow.
+image_owner = "anhnguyenk835"
+image_tag   = "staging"
+# Only if the GHCR packages are private.
+ghcr_username = ""
+ghcr_token    = ""
+
+github_repo   = "Anhnguyenk835/investigator-workspace"
+github_branch = "main"
+
+# Sign-in with Google (the OAuth client id is not secret).
+google_client_id = ""
+# Who may sign in with Google. Empty: any verified Google account.
+auth_allowed_domains = ""
+auth_allowed_emails  = ""
+
+# Optional OAuth apps for connecting sources.
+slack_client_id     = ""
+atlassian_client_id = ""
+notion_client_id    = ""
+
+# Secrets you provide. Or leave them empty and add them later in the Railway dashboard.
+gemini_api_key          = ""
+openai_api_key          = ""
+anthropic_api_key       = ""
+google_client_secret    = ""
+slack_client_secret     = ""
+atlassian_client_secret = ""
+notion_client_secret    = ""
+
+# Cost guard for model spend.
+demo_day_cost_usd = 5
+
+# true only while loading the demo data from your machine.
+expose_database = false
