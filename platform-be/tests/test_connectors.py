@@ -153,6 +153,12 @@ async def test_missing_or_dead_connection_is_not_connected(
         (err(429), "failed", "Retry after 7s"),
         (err(500), "failed", "request failed"),
         (
+            # Google's 403 for "too many requests" is not "you may not read this".
+            err(403, error={"errors": [{"reason": "rateLimitExceeded"}]}),
+            "failed",
+            "rate limit reached",
+        ),
+        (
             err(403, error={"errors": [{"reason": "accessNotConfigured"}]}),
             "failed",
             "not enabled for this server",

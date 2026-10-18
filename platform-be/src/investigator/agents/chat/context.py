@@ -2,12 +2,32 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from datetime import datetime
+from typing import Protocol
 
 from investigator.connectors import EvidenceRecord
 from investigator.investigations.models import Investigation
 from investigator.tools import render_record
+
+
+class SourceRow(Protocol):
+    """A source and whether it is connected now (see investigator.chat.availability)."""
+
+    @property
+    def source(self) -> str: ...
+    @property
+    def state(self) -> str: ...
+    @property
+    def account(self) -> str | None: ...
+
+
+STATE_TEXT = {
+    "connected": "connected, can be searched now",
+    "reconnect": "connected but the access expired; the person must reconnect it",
+    "not_connected": "not connected",
+    "not_configured": "not set up on this server",
+}
 
 MAX_RECORDS = 60
 EXCERPT_CHARS = 350
@@ -50,7 +70,9 @@ def _when(value: datetime | None) -> str:
     return value.isoformat() if value else "undated"
 
 
-def render_context(inv: Investigation) -> str:
+def render_context(
+    inv: Investigation, sources_now: Sequence[SourceRow] | None = None
+) -> str:
     out: list[str] = [
         f"Question: {inv.question}",
         f"Run status: {inv.status}"
@@ -58,7 +80,18 @@ def render_context(inv: Investigation) -> str:
     ]
     if inv.error:
         out.append(f"The run failed: {inv.error}")
-    out.append("\nSource coverage:")
+    if sources_now is not None:
+        out.append("\nSource availability now (read when this question was asked):")
+        out += [
+            f"- {r.source}: {STATE_TEXT.get(r.state, r.state)}"
+            + (f" ({r.account})" if r.account and r.state == "connected" else "")
+            for r in sources_now
+        ] or ["- (no source is available)"]
+    when = inv.updated_at.strftime("%Y-%m-%d %H:%M UTC")
+    out.append(
+        f"\nCoverage when the investigation last ran ({when}). A snapshot: it does not "
+        "change when a source is connected afterwards."
+    )
     out += [
         f"- {c.source}: {c.status}" + (f" ({c.detail})" if c.detail else "")
         for c in inv.coverage

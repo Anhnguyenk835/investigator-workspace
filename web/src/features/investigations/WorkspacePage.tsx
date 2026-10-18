@@ -18,6 +18,7 @@ import { ActionsSection } from '@/features/investigations/workspace/ActionsSecti
 import { CommitmentsSection } from '@/features/investigations/workspace/CommitmentsSection'
 import { FindingsSection } from '@/features/investigations/workspace/FindingsSection'
 import { IssuesSection } from '@/features/investigations/workspace/IssuesSection'
+import { NewSourcesNotice } from '@/features/investigations/workspace/NewSourcesNotice'
 import { RunProgress } from '@/features/investigations/workspace/RunProgress'
 import { SourcesSection } from '@/features/investigations/workspace/SourcesSection'
 import { SummarySection } from '@/features/investigations/workspace/SummarySection'
@@ -299,6 +300,8 @@ export function WorkspacePage() {
               </span>
             </p>
           ) : null}
+
+          {!running && !inv.sample ? <NewSourcesNotice b={b} /> : null}
 
           {inv.awaiting && !inv.sample ? <CheckpointPanel inv={inv} onDone={query.refresh} /> : null}
 

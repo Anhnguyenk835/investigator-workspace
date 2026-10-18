@@ -32,6 +32,7 @@ from investigator.connectors import (
     SourceConnector,
     SourceCoverage,
 )
+from investigator.directory.models import SourceFilter
 from investigator.guardrails import GuardRuntime, current
 from investigator.guardrails.egress import Refusal, screen_search
 from investigator.guardrails.injection.quarantine import protect
@@ -39,9 +40,11 @@ from investigator.guardrails.injection.spotlight import attr, neutralize
 from investigator.llm import ToolCall
 from investigator.tools.context import AccessContext
 from investigator.tools.specs import (
+    SCOPE_TOOLS,
     TOOL_ARGS,
     GetRecordArgs,
     GetThreadArgs,
+    ListScopesArgs,
     SearchRecordsArgs,
     openai_tools,
 )
@@ -174,16 +177,39 @@ _SENTINEL = {
 }
 
 
+# The filter field a source's parts go into. Notion has none: it is searched whole.
+SCOPE_FIELD = {
+    "slack": "channels",
+    "jira": "jira_projects",
+    "gmail": "gmail_labels",
+    "confluence": "confluence_spaces",
+}
+SCOPE_NOUN = {
+    "slack": "channels",
+    "jira": "projects",
+    "gmail": "labels",
+    "confluence": "spaces",
+}
+MAX_OPTIONS = 100
+OPTIONS_TTL_S = 120.0  # a listing is reused for this long, per person and source
+
+
 class ToolHarness:
     def __init__(
         self,
         connectors: dict[str, SourceConnector],
         limits: HarnessLimits | None = None,
         guard: GuardRuntime | None = None,
+        scoped_tools: bool = False,
     ) -> None:
         self._connectors = connectors
         self.limits = limits or HarnessLimits()
         self._guard = guard
+        # A conversation lets the person choose where to look (list_scopes, `scope`).
+        self.scoped_tools = scoped_tools
+        self._options_cache: dict[
+            tuple[str, str], tuple[float, list[dict[str, str]]]
+        ] = {}
 
     # ---- what the model is offered -------------------------------------------------
 
@@ -197,6 +223,29 @@ class ToolHarness:
             return "not_connected", []
         return await found(ctx)  # type: ignore[no-any-return]
 
+    def can_list(self, source: str) -> bool:
+        return getattr(self._connectors.get(source), "suggestions", None) is not None
+
+    async def _options(
+        self, source: str, ctx: AccessContext
+    ) -> tuple[str, list[dict[str, str]]]:
+        """The parts of a source. A good answer is kept for a short while, per person, so
+        listing and then searching a part does not ask the source twice."""
+        if not self.can_list(source):
+            return "unsupported", []
+        cache_key = (ctx.user_id, source)
+        hit = self._options_cache.get(cache_key)
+        if hit is not None and time.monotonic() - hit[0] < OPTIONS_TTL_S:
+            return "ok", hit[1]
+        try:
+            async with asyncio.timeout(self.limits.timeout_s):
+                found = await self.suggestions(source, ctx)
+        except Exception:  # noqa: BLE001  listing must never end the run
+            return "failed", []
+        if found[0] == "ok":
+            self._options_cache[cache_key] = (time.monotonic(), found[1])
+        return found
+
     def readable_sources(self, ctx: AccessContext) -> list[str]:
         names = [n for n in self._connectors if n in ctx.permitted_sources]
         if ctx.source_scope is not None:
@@ -205,7 +254,7 @@ class ToolHarness:
 
     def tool_schemas(self, ctx: AccessContext) -> list[dict[str, Any]]:
         sources = self.readable_sources(ctx)
-        return openai_tools(sources) if sources else []
+        return openai_tools(sources, self.scoped_tools) if sources else []
 
     def record_denied_sources(self, ledger: Ledger, ctx: AccessContext) -> None:
         """Connected but not permitted: coverage says so instead of staying silent."""
@@ -293,7 +342,7 @@ class ToolHarness:
     async def execute(self, call: ToolCall, ledger: Ledger, ctx: AccessContext) -> str:
         started = time.monotonic()
         model = TOOL_ARGS.get(call.name)
-        if model is None:
+        if model is None or (call.name in SCOPE_TOOLS and not self.scoped_tools):
             return self._reject(
                 ledger,
                 call,
@@ -311,7 +360,7 @@ class ToolHarness:
             )
 
         try:
-            source, prepared, clamp_note = self._prepare(args, ledger, ctx)
+            source, prepared, clamp_note = await self._prepare(args, ledger, ctx)
         except _Rejected as rej:
             return self._reject(ledger, call, rej.code, rej.text)
 
@@ -330,6 +379,14 @@ class ToolHarness:
             )
         ledger.calls_used += 1
 
+        if isinstance(args, ListScopesArgs):
+            text = await self._list_scopes(
+                call, key, source, args, ledger, ctx, started
+            )
+            if not text.startswith("SOURCE_UNAVAILABLE"):
+                ledger.seen_calls[key] = "done"
+            return text
+
         result = await self._invoke(call.name, source, prepared, ctx)
         text = await self._absorb(
             call, key, source, prepared, result, ledger, ctx, started, clamp_note
@@ -341,7 +398,7 @@ class ToolHarness:
 
     # ---- internals -----------------------------------------------------------------
 
-    def _prepare(
+    async def _prepare(
         self, args: BaseModel, ledger: Ledger, ctx: AccessContext
     ) -> tuple[str, dict[str, Any], str | None]:
         """Turn validated model arguments into a call the backend is willing to make."""
@@ -354,16 +411,25 @@ class ToolHarness:
                     f"Available: {', '.join(readable) or 'none'}.",
                 )
             lo, hi, note = _clamp_dates(args.date_from, args.date_to, ctx)
-            return (
-                args.source,
-                {
-                    "text": args.query.strip(),
-                    "date_from": lo,
-                    "date_to": hi,
-                    "cursor": args.cursor,
-                },
-                note,
-            )
+            prepared: dict[str, Any] = {
+                "text": args.query.strip(),
+                "date_from": lo,
+                "date_to": hi,
+                "cursor": args.cursor,
+            }
+            if args.scope:
+                prepared["scope"] = await self._resolve_scope(
+                    args.source, args.scope, ledger, ctx
+                )
+            return args.source, prepared, note
+        if isinstance(args, ListScopesArgs):
+            if args.source not in readable:
+                raise _Rejected(
+                    "source_not_allowed",
+                    f"SOURCE_NOT_AVAILABLE: '{args.source}' is not a source you can list. "
+                    f"Available: {', '.join(readable) or 'none'}.",
+                )
+            return args.source, {"contains": args.contains.strip().lower()}, None
         if isinstance(args, GetRecordArgs):
             rec = ledger.evidence.get(args.record_id)
             if rec is None or rec.source not in readable:
@@ -384,10 +450,121 @@ class ToolHarness:
             return source, {"thread_id": args.thread_id}, None
         raise _Rejected("unknown_tool", "UNKNOWN_TOOL")
 
+    async def _resolve_scope(
+        self, source: str, wanted: list[str], ledger: Ledger, ctx: AccessContext
+    ) -> list[str]:
+        """The ids a search may be limited to. What the model names must be a part of the
+        source this person can read, as listed by the source itself: an id it made up, or
+        one from another source, is refused, not searched."""
+        if not self.scoped_tools or source not in SCOPE_FIELD:
+            raise _Rejected(
+                "invalid_arguments",
+                f"INVALID_ARGUMENTS: {source} cannot be limited to parts of it. "
+                "Search it without `scope`.",
+            )
+        status, options = await self._options(source, ctx)
+        if status != "ok" or not options:
+            raise _Rejected(
+                "scope_unavailable",
+                f"SCOPE_UNAVAILABLE: the parts of {source} could not be listed "
+                f"({status}), so it cannot be limited. Search it without `scope`.",
+            )
+        by_name: dict[str, str] = {}
+        for o in options:
+            by_name[o["id"].lower()] = o["id"]
+            by_name.setdefault(o["label"].lower().lstrip("#"), o["id"])
+        found: list[str] = []
+        unknown: list[str] = []
+        for w in wanted:
+            hit = by_name.get(w.strip().lower().lstrip("#"))
+            if hit is None:
+                unknown.append(w)
+            elif hit not in found:
+                found.append(hit)
+        if unknown:
+            noun = SCOPE_NOUN[source]
+            raise _Rejected(
+                "unknown_scope",
+                f"UNKNOWN_SCOPE: {', '.join(repr(u) for u in unknown[:5])} is not one of the "
+                f"{noun} of {source}. Call list_scopes to see them.",
+            )
+        return sorted(found)
+
+    async def _list_scopes(
+        self,
+        call: ToolCall,
+        key: str,
+        source: str,
+        args: ListScopesArgs,
+        ledger: Ledger,
+        ctx: AccessContext,
+        started: float,
+    ) -> str:
+        status, options = await self._options(source, ctx)
+        noun = SCOPE_NOUN.get(source, "parts")
+        if status == "unsupported" or source not in SCOPE_FIELD:
+            text = (
+                f"NOT_LISTABLE: {source} cannot list its parts. Search it directly "
+                "with search_records."
+            )
+        elif status == "not_connected":
+            text = _SENTINEL["not_connected"]
+        elif status != "ok":
+            text = (
+                f"SOURCE_UNAVAILABLE: the {noun} of {source} could not be listed. "
+                "This says nothing about what exists; report it and do not guess."
+            )
+        else:
+            needle = args.contains.strip().lower()
+            matching = [
+                o
+                for o in options
+                if not needle
+                or needle in o["id"].lower()
+                or needle in o["label"].lower()
+            ]
+            shown = matching[:MAX_OPTIONS]
+            head = f"OK: {len(matching)} {noun} in {source}"
+            if needle:
+                head += f' matching "{neutralize(needle)}"'
+            lines = [head + ". Use the id as `scope` in search_records."]
+            if len(matching) > len(shown):
+                lines.append(
+                    f"Showing {len(shown)} of {len(matching)}; pass `contains` to narrow."
+                )
+            body = "\n".join(
+                f"{neutralize(o['id'])} | {neutralize(o['label'])}" for o in shown
+            )
+            lines.append(f'<options source="{attr(source)}">\n{body}\n</options>')
+            text = "\n".join(lines) if shown else f"NO_OPTIONS: no {noun} found."
+        ledger.events.append(
+            ToolEvent(
+                tool=call.name,
+                args_hash=key,
+                source=source,
+                status=status,
+                records=0,
+                duration_ms=int((time.monotonic() - started) * 1000),
+            )
+        )
+        return text
+
+    @staticmethod
+    def _scoped(ctx: AccessContext, source: str, ids: list[str]) -> AccessContext:
+        """The context with this source limited to what the person chose, for one call."""
+        chosen = SourceFilter(**{SCOPE_FIELD[source]: ids})
+        return ctx.model_copy(
+            update={"source_filters": {**ctx.source_filters, source: chosen}}
+        )
+
     async def _invoke(
         self, tool: str, source: str, prepared: dict[str, Any], ctx: AccessContext
     ) -> SearchResult:
         connector = self._connectors[source]
+        scope = prepared.get("scope")
+        if scope:
+            ctx = self._scoped(ctx, source, scope)
+            prepared = {k: v for k, v in prepared.items() if k != "scope"}
         try:
             async with asyncio.timeout(self.limits.timeout_s):
                 if tool == "search_records":

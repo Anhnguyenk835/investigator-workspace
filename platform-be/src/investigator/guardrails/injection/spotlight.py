@@ -12,7 +12,7 @@ import re
 
 from investigator.guardrails.injection.scan import HIDDEN
 
-TAGS = "record|untrusted[\\w-]*|user-input|derived-notes|system|assistant|developer"
+TAGS = "record|options|untrusted[\\w-]*|user-input|derived-notes|system|assistant|developer"
 _LOOKALIKE = re.compile(rf"<(?=\s*/?\s*(?:{TAGS})\b)", re.IGNORECASE)
 _CONTROL = re.compile(r"[\x00-\x08\x0b-\x1f\x7f]")
 ATTR_MAX = 160
