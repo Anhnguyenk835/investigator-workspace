@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api } from '@/api/client'
 import { toConnectors, toDirectory } from '@/api/adapt'
@@ -9,6 +9,8 @@ import { ProviderMark } from '@/components/shared/ProviderMark'
 import { StatusBadge, connectorStatus } from '@/components/shared/StatusBadge'
 import { useToast } from '@/components/ui/Toast'
 import { useApiQuery } from '@/hooks/useApiQuery'
+import { useAuth } from '@/features/auth/AuthProvider'
+import { DEMO_PREFILL } from './demoPrefill'
 import { providerMeta, supportedProviders } from '@/lib/providers'
 import type { SourceProvider } from '@/types/investigator'
 
@@ -29,9 +31,10 @@ export function NewInvestigationPage() {
   const directory = useApiQuery(async () => toDirectory(await api.getDirectory()), [])
   const navigate = useNavigate()
   const toast = useToast()
+  const { isDemo } = useAuth()
 
-  const [name, setName] = useState('')
-  const [problem, setProblem] = useState('')
+  const [name, setName] = useState(isDemo ? DEMO_PREFILL.name : '')
+  const [problem, setProblem] = useState(isDemo ? DEMO_PREFILL.problem : '')
   const [customer, setCustomer] = useState('')
   const [project, setProject] = useState('')
   const [customerId, setCustomerId] = useState('')
@@ -47,6 +50,19 @@ export function NewInvestigationPage() {
   const [formError, setFormError] = useState<string | undefined>()
 
   const dir = directory.data
+
+  // In the demo, point the example at its customer and project once the directory is there.
+  // Narrowing is what lets the run start without asking where to look.
+  const prefilled = useRef(false)
+  useEffect(() => {
+    if (!isDemo || prefilled.current || !dir) return
+    prefilled.current = true
+    const hasProject = dir.projects.some((p) => p.id === DEMO_PREFILL.projectId)
+    if (hasProject && dir.customers.some((c) => c.id === DEMO_PREFILL.customerId)) {
+      setCustomerId(DEMO_PREFILL.customerId)
+      setProjectId(DEMO_PREFILL.projectId)
+    }
+  }, [isDemo, dir])
   const useDirectory = Boolean(dir && (dir.customers.length > 0 || dir.projects.length > 0))
   const projectsOfCustomer = (dir?.projects ?? []).filter((p) => !customerId || p.customerId === customerId)
   const list = connectors.data ?? []
