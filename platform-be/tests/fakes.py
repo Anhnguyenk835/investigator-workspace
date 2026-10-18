@@ -54,8 +54,15 @@ class FakeConnector:
         threads: dict[str, list[EvidenceRecord]] | None = None,
         raises: Exception | None = None,
         delay: float = 0.0,
+        options: list[dict[str, str]] | None = None,
+        options_status: str = "ok",
     ) -> None:
         self.name = name
+        self.options = options or []
+        self.options_status = options_status
+        self.listed = 0
+        # The filter each search ran under, as the connector sees it.
+        self.filters: list[Any] = []
         self._search = search or (lambda q: result(name, "no_matches"))
         self.records = records or {}
         self.threads = threads or {}
@@ -64,8 +71,13 @@ class FakeConnector:
         self.queries: list[SearchQuery] = []
         self.fetched: list[str] = []
 
+    async def suggestions(self, ctx: AccessContext) -> tuple[str, list[dict[str, str]]]:
+        self.listed += 1
+        return self.options_status, self.options
+
     async def search(self, query: SearchQuery, ctx: AccessContext) -> SearchResult:
         self.queries.append(query)
+        self.filters.append(ctx.filter_for(self.name))
         if self.delay:
             await asyncio.sleep(self.delay)
         if self.raises:
@@ -80,6 +92,12 @@ class FakeConnector:
     async def get_thread(self, thread_id: str, ctx: AccessContext) -> SearchResult:
         self.fetched.append(f"thread:{thread_id}")
         return result(self.name, "searched", self.threads.get(thread_id, []))
+
+
+class WholeSourceConnector(FakeConnector):
+    """A source that cannot list its parts (Notion): it has no `suggestions`."""
+
+    suggestions = None  # type: ignore[assignment]
 
 
 def tool_turn(*calls: tuple[str, dict[str, Any]], text: str = "") -> AssistantTurn:

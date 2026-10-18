@@ -145,6 +145,14 @@ def _error_reason(resp: httpx.Response) -> str | None:
 
 
 NOT_ENABLED = {"accessNotConfigured", "SERVICE_DISABLED"}
+# A 403 that means "slow down", not "you may not read this" (Google sends it for per-user
+# and per-project limits).
+RATE_LIMITED = {
+    "rateLimitExceeded",
+    "userRateLimitExceeded",
+    "quotaExceeded",
+    "dailyLimitExceeded",
+}
 
 
 class SourceDenied(Exception):
@@ -436,19 +444,19 @@ class LiveConnector:
                     "failed",
                     f"The {self.label} API is not enabled for this server's app registration.",
                 )
+            if exc.status == 429 or exc.code in RATE_LIMITED:
+                wait = (
+                    f" Retry after {exc.retry_after:.0f}s." if exc.retry_after else ""
+                )
+                return failure(
+                    self.name, "failed", f"{self.label} rate limit reached.{wait}"
+                )
             if exc.status in (401, 403):
                 return failure(
                     self.name,
                     "permission_denied",
                     f"{self.label} rejected the token or it lacks the needed permissions "
                     f"({exc}); connect it again.",
-                )
-            if exc.status == 429:
-                wait = (
-                    f" Retry after {exc.retry_after:.0f}s." if exc.retry_after else ""
-                )
-                return failure(
-                    self.name, "failed", f"{self.label} rate limit reached.{wait}"
                 )
             return failure(self.name, "failed", f"{self.label} request failed ({exc}).")
         except OAuthError as exc:

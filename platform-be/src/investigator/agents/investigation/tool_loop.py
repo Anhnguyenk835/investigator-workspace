@@ -148,20 +148,25 @@ def add_tool_loop(
         ledger = ledger_of(state)
         before = len(ledger.evidence)
         announced = len(ledger.events)
-        results = await env.harness.run_calls(
-            state.messages[-1].tool_calls or [], ledger, ctx
-        )
+        calls = state.messages[-1].tool_calls or []
+        results = await env.harness.run_calls(calls, ledger, ctx)
         replies = [
             ChatMessage(role="tool", content=text, tool_call_id=call.id, name=call.name)
             for call, text in results
         ]
         added = len(ledger.evidence) - before
+        listing_only = bool(calls) and all(c.name == "list_scopes" for c in calls)
         announce(ledger.events[announced:])
         return {
             **ledger_update(ledger),
             "messages": [*state.messages, *replies],
             "tool_rounds": state.tool_rounds + 1,
-            "stale_rounds": 0 if added else state.stale_rounds + 1,
+            # Listing where to look finds no records by design; it is not a fruitless search.
+            "stale_rounds": 0
+            if added
+            else state.stale_rounds
+            if listing_only
+            else state.stale_rounds + 1,
         }
 
     async def wrap_up(state: Any) -> dict[str, Any]:

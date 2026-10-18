@@ -16,6 +16,7 @@ from investigator.agents.chat import ChatDeps, build_chat_graph
 from investigator.agents.investigation import Deps, build_graph
 from investigator.auth import AuthService, GoogleOidc, PostgresAuthStore
 from investigator.chat import ChatService, PostgresChatStore
+from investigator.chat.availability import build as build_availability
 from investigator.connectors import SourceConnector
 from investigator.connectors.registry import load_connectors
 from investigator.demo import DemoCorpus, PostgresDemoStore
@@ -202,6 +203,9 @@ async def open_runtime(settings: Settings) -> AsyncIterator[Runtime]:
                 access,
                 directory,
                 demo_max_turns=settings.demo_max_chat_turns,
+                availability=build_availability(
+                    oauth, demo_corpus, (c.name for c in connectors)
+                ),
             )
             yield runtime
         finally:

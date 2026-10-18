@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import AsyncIterator
 from typing import Any
 from uuid import UUID, uuid4
@@ -9,6 +10,7 @@ from uuid import UUID, uuid4
 from investigator.agents.chat import ChatState
 from investigator.agents.chat.context import render_context
 from investigator.auth import LOCAL, Principal, can_read, directory_owner, owner_for_new
+from investigator.chat.availability import Availability, SourceNow
 from investigator.chat.models import Conversation, StoredMessage
 from investigator.chat.store import ChatStore
 from investigator.directory import DirectoryStore
@@ -17,6 +19,8 @@ from investigator.guardrails.pii.names import directory_names
 from investigator.investigations.store import InvestigationStore
 from investigator.llm import ChatMessage
 from investigator.tools import AccessContext
+
+log = logging.getLogger(__name__)
 
 RUNNING = {"queued", "investigating"}
 MAX_MESSAGE_CHARS = 4000
@@ -45,7 +49,9 @@ class ChatService:
         access: AccessContext,
         directory: DirectoryStore | None = None,
         demo_max_turns: int = 40,
+        availability: Availability | None = None,
     ) -> None:
+        self._availability = availability
         self._demo_max_turns = demo_max_turns
         self._directory = directory
         self._graph = graph
@@ -53,6 +59,17 @@ class ChatService:
         self._investigations = investigations
         self._access = access
         self._active: set[UUID] = set()
+
+    async def _sources_now(self, principal: Principal) -> list[SourceNow] | None:
+        """What this person has connected at the time of the question; None when unknown
+        (then the conversation falls back to the sources the server can read)."""
+        if self._availability is None:
+            return None
+        try:
+            return await self._availability(principal)
+        except Exception:
+            log.warning("source availability could not be read", exc_info=True)
+            return None
 
     @staticmethod
     def _owner(principal: Principal) -> str | None:
@@ -217,10 +234,11 @@ class ChatService:
             )
             yield "user_message", message_out(asked)
 
+            now = await self._sources_now(principal)
             state = ChatState(
                 question=text,
                 history=[ChatMessage(role=m.role, content=m.content) for m in prior],
-                context_text=render_context(record),
+                context_text=render_context(record, now),
                 known_ids=[e.id for e in record.evidence],
                 context=record.context,
                 evidence=list(record.evidence),
@@ -232,7 +250,16 @@ class ChatService:
                 else None
             )
             access = self._access.model_copy(
-                update={"user_id": principal.user_id, "demo": principal.is_demo}
+                update={
+                    "user_id": principal.user_id,
+                    "demo": principal.is_demo,
+                    # Only what is connected now is offered as a tool: the rest cannot be
+                    # searched, and the model is told so by name.
+                    "permitted_sources": self._access.permitted_sources
+                    & {x.source for x in now if x.state == "connected"}
+                    if now is not None
+                    else self._access.permitted_sources,
+                }
             )
             config = {
                 "configurable": {"access": access, "directory": directory},
