@@ -69,10 +69,14 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=${{ matrix.context }}
           cache-to: type=gha,mode=max,scope=${{ matrix.context }}
+      # Image references must be lower case; the owner's name may not be (the metadata action
+      # lower-cases it when tagging, but the scanner takes the reference as written).
+      - id: scan_ref
+        run: echo "ref=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/${{ matrix.image }}:staging" >> "$GITHUB_OUTPUT"
       - name: Scan the pushed image
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
-          image-ref: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:staging
+          image-ref: ${{ steps.scan_ref.outputs.ref }}
           severity: CRITICAL
           ignore-unfixed: true
           exit-code: "1"
