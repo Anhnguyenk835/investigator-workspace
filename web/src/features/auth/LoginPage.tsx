@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { GoogleMark } from '@/components/shared/GoogleMark'
 import { Button, Icon } from '@/components/ui'
 import { useAuth } from '@/features/auth/AuthProvider'
@@ -84,6 +84,14 @@ export function LoginPage() {
             </>
           ) : null}
         </div>
+        <p className="mt-6 flex gap-4 border-t border-line-subtle pt-4 text-caption text-ink-muted">
+          <Link to="/privacy" className="hover:text-ink hover:underline">
+            Privacy Policy
+          </Link>
+          <Link to="/terms" className="hover:text-ink hover:underline">
+            Terms of Service
+          </Link>
+        </p>
       </div>
     </main>
   )

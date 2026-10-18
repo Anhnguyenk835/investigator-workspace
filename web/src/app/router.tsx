@@ -10,6 +10,7 @@ import { ResponseRedirect } from '@/features/investigations/ResponsePage'
 import { WorkspacePage } from '@/features/investigations/WorkspacePage'
 import { SettingsPage } from '@/features/settings/SettingsPage'
 import { DesignSystemPage } from '@/pages/DesignSystemPage'
+import { PrivacyPage, TermsPage } from '@/pages/LegalPages'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 
 /** /investigations/:id/evidence/:evidenceId opens the workspace with the evidence drawer. */
@@ -25,6 +26,8 @@ export function AppRouter() {
   return (
     <Routes>
       <Route path="login" element={<LoginPage />} />
+      <Route path="privacy" element={<PrivacyPage />} />
+      <Route path="terms" element={<TermsPage />} />
       <Route element={<RequireAuth />}>
       <Route element={<AppShell />}>
         <Route index element={<Navigate replace to="/investigations" />} />

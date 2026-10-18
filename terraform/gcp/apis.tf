@@ -10,6 +10,7 @@ locals {
     "cloudresourcemanager.googleapis.com",
     "monitoring.googleapis.com",
     "billingbudgets.googleapis.com",
+    "gmail.googleapis.com", # the Gmail connection reads mail with the user's own OAuth grant
   ]
 }
 
