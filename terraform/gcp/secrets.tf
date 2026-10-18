@@ -80,7 +80,7 @@ resource "google_secret_manager_secret" "litellm_config" {
 
 resource "google_secret_manager_secret_version" "litellm_config" {
   secret      = google_secret_manager_secret.litellm_config.id
-  secret_data = file("${path.module}/../infra/llm-gateway/config.yaml")
+  secret_data = file("${path.module}/../../infra/llm-gateway/config.yaml")
 }
 
 locals {

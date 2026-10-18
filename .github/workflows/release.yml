@@ -81,8 +81,8 @@ jobs:
           TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
 
   # Deploys the new api and web images to Cloud Run. Runs only when the repository variables
-  # written by `terraform output github_variables` are set. The gateway is not built here: it
-  # is a pinned upstream image managed by Terraform.
+  # written by `terraform output github_variables` (terraform/gcp) are set. The gateway is not built here: it
+  # is a pinned upstream image managed by Terraform (terraform/gcp).
   deploy-demo:
     needs: images
     if: vars.GCP_PROJECT_ID != ''
